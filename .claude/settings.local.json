@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Airtable__list_bases",
+      "mcp__claude_ai_Airtable__search_bases",
+      "mcp__claude_ai_Airtable__list_tables_for_base",
+      "mcp__claude_ai_Airtable__get_table_schema"
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+export interface DemandeFields {
+  Contact?: string;
+  Partenaire?: string[];
+  Lieux?: string[];
+  Pipeline?: string[];
+  Nom?: string;
+  Prénom?: string;
+  Téléphone?: string;
+  Email?: string;
+  Adresse?: string;
+  "Code postal"?: string;
+  Ville?: string;
+  "Adresse complète"?: string;
+  "Date de la demande"?: string;
+  Statut?: "Open" | "Won" | "Lost" | "Late" | "Cancelled" | "Closed";
+  "Etape de vente"?:
+    | "01. Demande reçue"
+    | "02. Client contacté"
+    | "03. Visite technique en cours"
+    | "04. Documents techniques reçus"
+    | "05. Devis envoyé / Autorisation d’intervention envoyée"
+    | "06. Devis validé / Autorisation d’intervention validée"
+    | "07. Chantier en cours"
+    | "08. Installation terminée"
+    | "09. Projet annulé";
+  "Type de client"?: "Particulier" | "Professionnel";
+  "Nombre de bornes"?: "Une borne" | "Plusieurs bornes";
+  "Type de courant"?: "monophase" | "triphase" | "Non définie";
+  "Puissance de borne"?: "7.4" | "22" | "11" | "0" | "3.7";
+  "Modèle de borne"?: "Alfen mono rfid" | "Autel 3G" | "Autre" | "Autel mono sans 3G";
+  "Nb point de charge"?: number;
+  "N° Borne"?: string;
+  "Centre de cout"?: string;
+  "Nouvelle adresse (Location)"?: string;
+  "Nouveau CP (Location)"?: string;
+  "Nouvelle Ville (Location)"?: string;
+  "Statut modification adresse (Location)"?:
+    | "En attente"
+    | "Validé"
+    | "Chantier en cours"
+    | "Terminé"
+    | "Refusé";
+  "Statut résiliation (Location)"?:
+    | "Nouvelle demande"
+    | "Acceptée"
+    | "En cours de desinstallation"
+    | "Résilié"
+    | "Refusé";
+  "Date demande arrêt"?: string;
+  "Date Installation terminée"?: string;
+  "Date Projet annulé"?: string;
+  // string libre : de nouvelles entites peuvent etre creees a la volee via
+  // typecast (voir validateExternalRequestAction), en plus des choix connus
+  // (Sogeca, Elivie, Asdia, Audika, E Horus, Audika Groupe, Santé & Cie,
+  // Alliance Soins, Urgence Med).
+  "Entité partenaire"?: string;
+  "Date de chantier"?: string;
+  "Date de premiere connexion faroad"?: string;
+  "EXTERNAL - Validation demande "?: "A valider" | "Validé" | "Refusé";
+}
+
+export interface PartenaireFields {
+  "Nom de l'entreprise"?: string;
+  "Email principal"?: string;
+  Type?: string;
+}
+
+export interface LieuxFields {
+  "Nom du site"?: string;
+}
+
+export interface AirtableRecord<TFields> {
+  id: string;
+  createdTime: string;
+  fields: TFields;
+}
+
+export interface AirtableListResponse<TFields> {
+  records: AirtableRecord<TFields>[];
+  offset?: string;
+}
