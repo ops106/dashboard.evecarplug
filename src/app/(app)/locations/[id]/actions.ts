@@ -3,8 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { updateLocation } from "@/lib/airtable/queries";
 import type { DemandeFields } from "@/lib/airtable/types";
+import { getSessionUser } from "@/lib/session";
 
+// Formulaire interne complet (specs, statut de vente, pipeline...) — jamais
+// accessible aux partenaires, quel que soit l'id ciblé.
 export async function updateLocationAction(id: string, formData: FormData) {
+  const session = await getSessionUser();
+  if (session?.role !== "interne") return;
+
   const patch: Partial<DemandeFields> = {};
 
   const prenom = formData.get("prenom");

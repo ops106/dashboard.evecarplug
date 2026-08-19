@@ -1,7 +1,14 @@
+import { redirect } from "next/navigation";
 import { getAllClients, getAllLocations } from "@/lib/airtable/queries";
+import { getSessionUser } from "@/lib/session";
 import { ClientsTable } from "@/components/clients/ClientsTable";
 
+// Liste toutes les sociétés partenaires — jamais accessible à une session
+// "Partenaire location", qui n'a rien à voir des autres sociétés.
 export default async function ClientsPage() {
+  const session = await getSessionUser();
+  if (session?.role !== "interne") redirect("/");
+
   const [clients, locations] = await Promise.all([getAllClients(), getAllLocations()]);
 
   const activeCounts = new Map<string, number>();

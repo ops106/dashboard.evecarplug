@@ -1,10 +1,14 @@
 import {
   DEMANDE_FIELDS,
   ETAPE_INSTALLATION_TERMINEE,
+  ETAPE_NOUVELLE_DEMANDE,
   ETAPE_PROJET_ANNULE,
   ETAPE_VENTE_ORDER,
+  ETAPES_EN_COURS_INSTALLATION,
+  ETAPES_QUALIFICATION,
   EXTERNAL_VALIDATION_A_VALIDER,
   PARTENAIRE_FIELDS,
+  QUOTE_STATUS_A_VALIDER,
   RELOCATION_STATUS_ORDER,
   RELOCATION_STATUS_REFUSED,
   RELOCATION_STATUS_TERMINAL,
@@ -65,6 +69,10 @@ export interface Location {
   termination: TerminationRequest;
   hasTerminationRequest: boolean;
   externalValidationStatus?: DemandeFields["EXTERNAL - Validation demande "];
+  quoteStatus?: DemandeFields["Statut devis"];
+  quoteLink?: string;
+  quoteRefusalReason?: string;
+  quoteAmount?: number;
 }
 
 export interface Client {
@@ -78,11 +86,13 @@ function firstLinkedId(ids?: string[]): string | undefined {
   return ids && ids.length > 0 ? ids[0] : undefined;
 }
 
-export function isLocationActive(fields: DemandeFields): boolean {
+function isLocationActive(fields: DemandeFields): boolean {
   const stage = fields[DEMANDE_FIELDS.etapeDeVente as keyof DemandeFields] as string | undefined;
   const status = fields[DEMANDE_FIELDS.statut as keyof DemandeFields] as string | undefined;
+  const terminationStatus = fields[DEMANDE_FIELDS.statutResiliation as keyof DemandeFields] as string | undefined;
   if (stage !== ETAPE_INSTALLATION_TERMINEE) return false;
   if (status && (STATUTS_INACTIFS as readonly string[]).includes(status)) return false;
+  if (terminationStatus === TERMINATION_STATUS_ORDER[TERMINATION_STATUS_ORDER.length - 1]) return false;
   return true;
 }
 
@@ -219,6 +229,10 @@ export function mapDemandeRecord(
     termination,
     hasTerminationRequest,
     externalValidationStatus: f["EXTERNAL - Validation demande "],
+    quoteStatus: f["Statut devis"],
+    quoteLink: f["Lien du devis"],
+    quoteRefusalReason: f["Raison refus devis"],
+    quoteAmount: f["Montant du devis entreprise"],
   };
 }
 
@@ -274,10 +288,31 @@ export function isCancelled(location: Location): boolean {
   return location.stage === ETAPE_PROJET_ANNULE;
 }
 
+// Big numbers de la page Suivi des demandes.
+export function isNewRequest(location: Location): boolean {
+  return location.stage === ETAPE_NOUVELLE_DEMANDE;
+}
+
+export function isQualifying(location: Location): boolean {
+  return Boolean(location.stage) && (ETAPES_QUALIFICATION as readonly string[]).includes(location.stage as string);
+}
+
+export function isInstallationInProgress(location: Location): boolean {
+  return (
+    Boolean(location.stage) && (ETAPES_EN_COURS_INSTALLATION as readonly string[]).includes(location.stage as string)
+  );
+}
+
 // Tableau de bord : demandes en attente d'un accord de l'entreprise
 // partenaire ("EXTERNAL - Validation demande " = "A valider").
 export function needsExternalValidation(location: Location): boolean {
   return location.externalValidationStatus === EXTERNAL_VALIDATION_A_VALIDER;
+}
+
+// Tableau de bord : demandes d'ajout supplémentaire dont le devis attend une
+// validation ("Statut devis" = "A valider").
+export function needsQuoteValidation(location: Location): boolean {
+  return location.quoteStatus === QUOTE_STATUS_A_VALIDER;
 }
 
 export function groupLocationsByStage(locations: Location[]): StatusGroup[] {

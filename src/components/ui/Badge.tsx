@@ -27,7 +27,7 @@ const SUCCESS_VALUES = [
   "08. Installation terminée",
 ];
 
-export function toneForValue(value?: string): Tone {
+function toneForValue(value?: string): Tone {
   if (!value) return "neutral";
   if (DANGER_VALUES.includes(value)) return "danger";
   if (WARNING_VALUES.includes(value)) return "warning";

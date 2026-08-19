@@ -1,14 +1,19 @@
 import { Nav } from "@/components/layout/Nav";
+import { getSessionUser } from "@/lib/session";
 
-// Donnees live depuis Airtable, derriere l'auth par mot de passe : pas de
+// Donnees live depuis Airtable, derriere l'auth par email : pas de
 // generation statique au build, tout est rendu a la demande.
 export const dynamic = "force-dynamic";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSessionUser();
+
   return (
-    <>
-      <Nav />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">{children}</main>
-    </>
+    <div className="flex flex-1">
+      <Nav role={session?.role} />
+      <main className="flex-1 px-6 py-8" style={{ overflowX: "auto" }}>
+        <div className="mx-auto w-full max-w-7xl">{children}</div>
+      </main>
+    </div>
   );
 }

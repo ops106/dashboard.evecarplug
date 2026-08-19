@@ -1,51 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { closeDialogOnBackdropClick, useDialogAction } from "@/lib/useDialogAction";
 import { refuseExternalRequestAction } from "@/lib/airtable/external-validation-actions";
 
 export function RefuseExternalRequestButton({ locationId }: { locationId: string }) {
-  const confirmRef = useRef<HTMLDialogElement>(null);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { dialogRef, pending, error, open, close, run } = useDialogAction();
   const titleId = `refuse-external-title-${locationId}`;
 
-  function openConfirm() {
-    setError(null);
-    confirmRef.current?.showModal();
-  }
-
-  async function handleConfirm() {
-    setPending(true);
-    setError(null);
-    try {
-      await refuseExternalRequestAction(locationId);
-      confirmRef.current?.close();
-    } catch {
-      setError("Une erreur est survenue, réessayez.");
-    } finally {
-      setPending(false);
-    }
+  function handleConfirm() {
+    return run(() => refuseExternalRequestAction(locationId));
   }
 
   return (
     <>
-      <button type="button" className="btn btn-ghost" style={{ padding: "6px 14px" }} onClick={openConfirm}>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={open}>
         Refuser
       </button>
-      <dialog
-        ref={confirmRef}
-        className="dialog"
-        aria-labelledby={titleId}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) e.currentTarget.close();
-        }}
-      >
-        <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+      <dialog ref={dialogRef} className="dialog" aria-labelledby={titleId} onClick={closeDialogOnBackdropClick}>
+        <div className="dialog-body">
           <h3 id={titleId}>Refuser cette demande ?</h3>
           <p className="text-muted">Êtes-vous certain de vouloir refuser cette demande ?</p>
-          {error && <p style={{ color: "var(--color-danger)", fontSize: 13 }}>{error}</p>}
-          <div className="flex gap-2" style={{ justifyContent: "flex-end" }}>
-            <button type="button" className="btn btn-ghost" onClick={() => confirmRef.current?.close()}>
+          {error && <p className="field-error">{error}</p>}
+          <div className="dialog-footer">
+            <button type="button" className="btn btn-ghost" onClick={close}>
               Annuler
             </button>
             <button type="button" className="btn btn-danger-solid" disabled={pending} onClick={handleConfirm}>

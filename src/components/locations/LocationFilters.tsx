@@ -11,6 +11,8 @@ export function LocationFilters({
   cities,
   currentTypes,
   values,
+  showClientFilter = true,
+  partnerContacts,
 }: {
   clients: Option[];
   cities: string[];
@@ -21,22 +23,44 @@ export function LocationFilters({
     courant?: string;
     q?: string;
     all?: string;
+    viewAs?: string;
   };
+  showClientFilter?: boolean;
+  // Réservé à la persona "Interne" : "voir comme" un partenaire location.
+  // Dans le même formulaire que les autres filtres pour ne rien perdre à
+  // la soumission (soumettre un formulaire GET remplace toute la query).
+  partnerContacts?: Option[];
 }) {
   return (
     <Card className="mb-6">
       <form method="GET" className="flex flex-wrap items-end gap-3">
-        <div className="field">
-          <label htmlFor="client">Client</label>
-          <select id="client" name="client" defaultValue={values.client ?? ""} className="input">
-            <option value="">Tous</option>
-            {clients.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        {partnerContacts && partnerContacts.length > 0 && (
+          <div className="field">
+            <label htmlFor="viewAs">Voir comme partenaire</label>
+            <select id="viewAs" name="viewAs" defaultValue={values.viewAs ?? ""} className="input">
+              <option value="">— Vue interne —</option>
+              {partnerContacts.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {showClientFilter && (
+          <div className="field">
+            <label htmlFor="client">Client</label>
+            <select id="client" name="client" defaultValue={values.client ?? ""} className="input">
+              <option value="">Tous</option>
+              {clients.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="field">
           <label htmlFor="ville">Ville</label>

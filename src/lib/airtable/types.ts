@@ -57,6 +57,10 @@ export interface DemandeFields {
   "Date de chantier"?: string;
   "Date de premiere connexion faroad"?: string;
   "EXTERNAL - Validation demande "?: "A valider" | "Validé" | "Refusé";
+  "Statut devis"?: "A valider" | "Validé" | "Refusé";
+  "Lien du devis"?: string;
+  "Raison refus devis"?: string;
+  "Montant du devis entreprise"?: number;
 }
 
 export interface PartenaireFields {
@@ -65,8 +69,32 @@ export interface PartenaireFields {
   Type?: string;
 }
 
+export interface ContactFields {
+  Nom?: string;
+  Prénom?: string;
+  Email?: string;
+  // Champ formule : "Interne" (aucun Partenaire lié), "Partenaire location"
+  // ou "Partenaire" selon le pipeline du Partenaire lié.
+  Persona?: string;
+  Partenaire?: string[];
+}
+
 export interface LieuxFields {
   "Nom du site"?: string;
+}
+
+export interface HistoriqueMouvementFields {
+  "Résumé"?: string;
+  Demande?: string[];
+  Partenaire?: string[];
+  "Type de mouvement"?: "Déménagement" | "Résiliation";
+  Action?: "Nouvelle demande" | "Progression" | "Refus";
+  "Ancien statut"?: string;
+  "Nouveau statut"?: string;
+  "Détail"?: string;
+  "Effectué par"?: string;
+  "Rôle de l'auteur"?: "Interne" | "Partenaire location";
+  Date?: string;
 }
 
 export interface AirtableRecord<TFields> {

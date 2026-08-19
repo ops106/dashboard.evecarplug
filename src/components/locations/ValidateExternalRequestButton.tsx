@@ -24,13 +24,13 @@ export function ValidateExternalRequestButton({
     open();
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const entity = selected === ADD_NEW_VALUE ? newEntity.trim() : selected;
     if (!entity) {
       setError("Renseignez une entité partenaire.");
       return;
     }
-    return run(() => validateExternalRequestAction(locationId, entity));
+    await run(() => validateExternalRequestAction(locationId, entity));
   }
 
   return (

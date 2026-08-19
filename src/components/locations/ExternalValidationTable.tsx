@@ -7,9 +7,11 @@ import { RefuseExternalRequestButton } from "@/components/locations/RefuseExtern
 export function ExternalValidationTable({
   locations,
   entitiesByClient,
+  linkable = true,
 }: {
   locations: Location[];
   entitiesByClient: Record<string, string[]>;
+  linkable?: boolean;
 }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune demande en attente de validation par l'entreprise." />;
@@ -24,26 +26,34 @@ export function ExternalValidationTable({
             <th>Client</th>
             <th>Email</th>
             <th>Téléphone</th>
-            <th>Actions</th>
+            <th style={{ textAlign: "right" }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {locations.map((location) => (
             <tr key={location.id}>
               <td className="font-medium">
-                <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                  {location.clientName}
-                </Link>
+                {linkable ? (
+                  <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                    {location.clientName}
+                  </Link>
+                ) : (
+                  location.clientName
+                )}
               </td>
               <td>
-                <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                  {location.contact || "—"}
-                </Link>
+                {linkable ? (
+                  <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                    {location.contact || "—"}
+                  </Link>
+                ) : (
+                  location.contact || "—"
+                )}
               </td>
               <td>{location.email || "—"}</td>
               <td>{location.phone || "—"}</td>
               <td className="whitespace-nowrap">
-                <div className="flex gap-2">
+                <div className="flex gap-2 justify-end">
                   <ValidateExternalRequestButton
                     locationId={location.id}
                     availableEntities={location.clientId ? (entitiesByClient[location.clientId] ?? []) : []}

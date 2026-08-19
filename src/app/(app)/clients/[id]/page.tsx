@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getClientById, getLocationsByClientId } from "@/lib/airtable/queries";
+import { getSessionUser } from "@/lib/session";
 import { Card } from "@/components/ui/Card";
 import { LocationsTable } from "@/components/locations/LocationsTable";
 
@@ -9,6 +10,9 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getSessionUser();
+  if (session?.role !== "interne") redirect("/");
+
   const { id } = await params;
   const client = await getClientById(id);
   if (!client) notFound();

@@ -8,9 +8,11 @@ import { TerminationRequestButton } from "@/components/locations/TerminationRequ
 export function LocationsTable({
   locations,
   showClient = true,
+  linkable = true,
 }: {
   locations: Location[];
   showClient?: boolean;
+  linkable?: boolean;
 }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune location ne correspond à ces critères." />;
@@ -34,15 +36,23 @@ export function LocationsTable({
             <tr key={location.id}>
               {showClient && (
                 <td className="font-medium">
-                  <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                    {location.clientName}
-                  </Link>
+                  {linkable ? (
+                    <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                      {location.clientName}
+                    </Link>
+                  ) : (
+                    location.clientName
+                  )}
                 </td>
               )}
               <td>
-                <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                  {location.contact || "—"}
-                </Link>
+                {linkable ? (
+                  <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                    {location.contact || "—"}
+                  </Link>
+                ) : (
+                  location.contact || "—"
+                )}
               </td>
               <td>{formatDate(location.constructionDate)}</td>
               <td>{formatDate(location.firstFarodConnectionDate)}</td>

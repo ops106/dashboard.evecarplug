@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME, getExpectedSessionToken } from "@/lib/auth";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
 
 export const config = {
   matcher: ["/((?!login|_next/static|_next/image|favicon.ico).*)"],
@@ -7,9 +7,9 @@ export const config = {
 
 export async function proxy(request: NextRequest) {
   const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const expected = await getExpectedSessionToken();
+  const session = await verifySessionToken(cookie);
 
-  if (cookie && cookie === expected) {
+  if (session) {
     return NextResponse.next();
   }
 

@@ -5,33 +5,38 @@ interface Option {
   label: string;
 }
 
-export function PartnerFilter({
-  clients,
+// Reserve a la persona "Interne" : simule la vue d'un contact "Partenaire
+// location" (memes tableaux, meme scope) sans se connecter a sa place —
+// voir la resolution de ?viewAs=email dans chaque page.
+export function ViewAsPartnerFilter({
+  contacts,
   value,
   resetHref,
   extraParams,
 }: {
-  clients: Option[];
+  contacts: Option[];
   value?: string;
   resetHref: string;
   extraParams?: Record<string, string>;
 }) {
+  if (contacts.length === 0) return null;
+
   return (
     <form method="GET" className="card mb-6 inline-flex flex-wrap items-center gap-2 p-3 text-sm">
       {extraParams &&
         Object.entries(extraParams).map(([name, val]) => <input key={name} type="hidden" name={name} value={val} />)}
-      <label htmlFor="client" className="text-muted">
-        Société
+      <label htmlFor="viewAs" className="text-muted">
+        Voir comme partenaire
       </label>
       <select
-        id="client"
-        name="client"
+        id="viewAs"
+        name="viewAs"
         defaultValue={value ?? ""}
         className="input"
         style={{ minHeight: 32, width: "auto", padding: "4px 8px", fontSize: 13 }}
       >
-        <option value="">Toutes</option>
-        {clients.map((c) => (
+        <option value="">— Vue interne —</option>
+        {contacts.map((c) => (
           <option key={c.value} value={c.value}>
             {c.label}
           </option>

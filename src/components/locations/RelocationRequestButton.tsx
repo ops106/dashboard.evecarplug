@@ -13,8 +13,8 @@ export function RelocationRequestButton({
   const { dialogRef, pending, error, open, close, run } = useDialogAction();
   const titleId = `relocation-title-${locationId}`;
 
-  function handleSubmit(formData: FormData) {
-    return run(() => createRelocationRequestAction(locationId, formData));
+  async function handleSubmit(formData: FormData) {
+    await run(() => createRelocationRequestAction(locationId, formData));
   }
 
   return (

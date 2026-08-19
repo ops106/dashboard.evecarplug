@@ -4,7 +4,39 @@ export const TABLE_IDS = {
   demande: "tblP1GcqsxrBCrm3u",
   partenaire: "tblxylwUVgIX5rzmV",
   lieux: "tblV7sKUIaq4lSomd",
+  contact: "tblg3MlHQCIokfyqv",
+  historiqueMouvements: "tbl1ZElC8Aoj8RB5X",
 } as const;
+
+// Champs de la table "Historique mouvements locatifs" (log des déménagements
+// et résiliations abouti — voir movement-log.ts).
+export const HISTORIQUE_MOUVEMENTS_FIELDS = {
+  resume: "Résumé",
+  demande: "Demande",
+  partenaire: "Partenaire",
+  typeDeMouvement: "Type de mouvement",
+  action: "Action",
+  ancienStatut: "Ancien statut",
+  nouveauStatut: "Nouveau statut",
+  detail: "Détail",
+  effectuePar: "Effectué par",
+  roleAuteur: "Rôle de l'auteur",
+  date: "Date",
+} as const;
+
+export const CONTACT_FIELDS = {
+  nom: "Nom",
+  prenom: "Prénom",
+  email: "Email",
+  persona: "Persona",
+  partenaire: "Partenaire",
+} as const;
+
+// Personas autorisés à se connecter à l'outil.
+// "Interne" : accès complet. "Partenaire location" : accès limité aux
+// demandes dont le Partenaire correspond au leur (voir authorize.ts).
+export const PERSONA_INTERNE = "Interne";
+export const PERSONA_PARTENAIRE_LOCATION = "Partenaire location";
 
 // Une seule source de verite pour les noms de champs Airtable : si un champ
 // est renomme dans Airtable, seule cette liste doit etre mise a jour.
@@ -40,16 +72,16 @@ export const DEMANDE_FIELDS = {
   dateInstallationTerminee: "Date Installation terminée",
   dateProjetAnnule: "Date Projet annulé",
   validationExterne: "EXTERNAL - Validation demande ",
+  statutDevis: "Statut devis",
+  lienDevis: "Lien du devis",
+  raisonRefusDevis: "Raison refus devis",
+  montantDevisEntreprise: "Montant du devis entreprise",
 } as const;
 
 export const PARTENAIRE_FIELDS = {
   nomEntreprise: "Nom de l'entreprise",
   emailPrincipal: "Email principal",
   type: "Type",
-} as const;
-
-export const LIEUX_FIELDS = {
-  nomDuSite: "Nom du site",
 } as const;
 
 // La table Demande contient plusieurs pipelines commerciaux (TESLA, CELLNEX,
@@ -74,6 +106,14 @@ export const ETAPE_VENTE_ORDER = [
   "08. Installation terminée",
   "09. Projet annulé",
 ] as const;
+
+export const ETAPE_NOUVELLE_DEMANDE = ETAPE_VENTE_ORDER[0];
+// Etapes 02 à 04 : de la prise de contact à la réception des documents
+// techniques, avant l'envoi du devis — utilisé par "En cours de qualification".
+export const ETAPES_QUALIFICATION = ETAPE_VENTE_ORDER.slice(1, 4);
+// Etapes 05 à 07 : du devis envoyé au chantier — utilisé par "En cours
+// d'installation" (le devis fait partie du processus d'installation).
+export const ETAPES_EN_COURS_INSTALLATION = ETAPE_VENTE_ORDER.slice(4, 7);
 
 // Pipeline du champ "Statut modification adresse (Location)" : le bouton
 // Accepter fait avancer d'une etape, Refuser bascule directement vers le
@@ -104,3 +144,10 @@ export const TERMINATION_STATUS_TERMINAL = ["Résilié", "Refusé"] as const;
 export const EXTERNAL_VALIDATION_A_VALIDER = "A valider";
 export const EXTERNAL_VALIDATION_VALIDE = "Validé";
 export const EXTERNAL_VALIDATION_REFUSE = "Refusé";
+
+// Champ "Statut devis" : demandes d'ajout supplémentaire dont le devis
+// attend une validation (tableau "Ajouts supplémentaires" du tableau de
+// bord). Valider ce devis valide aussi la demande externe correspondante.
+export const QUOTE_STATUS_A_VALIDER = "A valider";
+export const QUOTE_STATUS_VALIDE = "Validé";
+export const QUOTE_STATUS_REFUSE = "Refusé";

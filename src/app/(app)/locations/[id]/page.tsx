@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getLocationById } from "@/lib/airtable/queries";
+import { getSessionUser } from "@/lib/session";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import { updateLocationAction } from "./actions";
@@ -20,6 +21,13 @@ export default async function LocationDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // Fiche complète interne (specs, statut de vente, pipeline) — non destinée
+  // aux partenaires, qui ont déjà tout ce dont ils ont besoin (adresse,
+  // actions Déménagement/Résiliation) sur la liste des locations.
+  const session = await getSessionUser();
+  if (session?.role !== "interne") redirect("/locations");
+
   const location = await getLocationById(id);
   if (!location) notFound();
 

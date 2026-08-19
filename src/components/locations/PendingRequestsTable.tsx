@@ -5,7 +5,13 @@ import { groupLocationsByStage } from "@/lib/airtable/mappers";
 import { formatDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-export function PendingRequestsTable({ locations }: { locations: Location[] }) {
+export function PendingRequestsTable({
+  locations,
+  linkable = true,
+}: {
+  locations: Location[];
+  linkable?: boolean;
+}) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune demande en cours d'installation." />;
   }
@@ -35,14 +41,22 @@ export function PendingRequestsTable({ locations }: { locations: Location[] }) {
               {group.locations.map((location) => (
                 <tr key={location.id}>
                   <td className="font-medium">
-                    <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                      {location.clientName}
-                    </Link>
+                    {linkable ? (
+                      <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                        {location.clientName}
+                      </Link>
+                    ) : (
+                      location.clientName
+                    )}
                   </td>
                   <td>
-                    <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                      {location.contact || "—"}
-                    </Link>
+                    {linkable ? (
+                      <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                        {location.contact || "—"}
+                      </Link>
+                    ) : (
+                      location.contact || "—"
+                    )}
                   </td>
                   <td>{location.email || "—"}</td>
                   <td>{location.phone || "—"}</td>

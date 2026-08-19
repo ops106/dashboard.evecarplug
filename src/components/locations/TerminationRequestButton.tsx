@@ -12,12 +12,12 @@ export function TerminationRequestButton({
   locationId: string;
   disabled?: boolean;
 }) {
-  const confirm = useDialogAction();
+  const { dialogRef: confirmDialogRef, pending, error, open: openConfirm, close: closeConfirm, run } = useDialogAction();
   const successRef = useRef<HTMLDialogElement>(null);
   const confirmTitleId = `termination-title-${locationId}`;
 
   async function handleConfirm() {
-    const ok = await confirm.run(() => createTerminationRequestAction(locationId));
+    const ok = await run(() => createTerminationRequestAction(locationId));
     if (ok) successRef.current?.showModal();
   }
 
@@ -26,7 +26,7 @@ export function TerminationRequestButton({
       <button
         type="button"
         className="btn btn-danger"
-        onClick={confirm.open}
+        onClick={openConfirm}
         disabled={disabled}
         title={disabled ? "Une demande de résiliation est déjà en cours" : undefined}
       >
@@ -34,7 +34,7 @@ export function TerminationRequestButton({
       </button>
 
       <dialog
-        ref={confirm.dialogRef}
+        ref={confirmDialogRef}
         className="dialog"
         aria-labelledby={confirmTitleId}
         onClick={closeDialogOnBackdropClick}
@@ -42,13 +42,13 @@ export function TerminationRequestButton({
         <div className="dialog-body">
           <h3 id={confirmTitleId}>Résilier ce contrat de location ?</h3>
           <p className="text-muted">Êtes-vous certain de vouloir faire une demande de résiliation ?</p>
-          {confirm.error && <p className="field-error">{confirm.error}</p>}
+          {error && <p className="field-error">{error}</p>}
           <div className="dialog-footer">
-            <button type="button" className="btn btn-ghost" onClick={confirm.close}>
+            <button type="button" className="btn btn-ghost" onClick={closeConfirm}>
               Annuler
             </button>
-            <button type="button" className="btn btn-danger-solid" disabled={confirm.pending} onClick={handleConfirm}>
-              {confirm.pending ? "Envoi..." : "Valider"}
+            <button type="button" className="btn btn-danger-solid" disabled={pending} onClick={handleConfirm}>
+              {pending ? "Envoi..." : "Valider"}
             </button>
           </div>
         </div>

@@ -99,6 +99,18 @@ export async function getRecord<TFields>(
   return airtableFetch(url, { cache: "no-store" });
 }
 
+export async function createRecord<TFields>(
+  tableId: string,
+  fields: Partial<TFields>,
+): Promise<AirtableRecord<TFields>> {
+  const url = `${AIRTABLE_API_BASE}/${BASE_ID}/${tableId}`;
+  return airtableFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fields }),
+  });
+}
+
 export async function updateRecord<TFields>(
   tableId: string,
   recordId: string,

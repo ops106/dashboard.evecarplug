@@ -1,4 +1,5 @@
-import { getAllLocations } from "@/lib/airtable/queries";
+import { getAllLocations, getPartnerLocationContactByEmail, getPartnerLocationContacts } from "@/lib/airtable/queries";
+import { getSessionUser } from "@/lib/session";
 import { LocationFilters } from "@/components/locations/LocationFilters";
 import { LocationsTable } from "@/components/locations/LocationsTable";
 
@@ -11,10 +12,29 @@ export default async function LocationsPage({
     courant?: string;
     q?: string;
     all?: string;
+    viewAs?: string;
   }>;
 }) {
   const params = await searchParams;
-  const allLocations = await getAllLocations();
+  const session = await getSessionUser();
+  const isInterne = session?.role === "interne";
+
+  let isPartner = session?.role === "partenaire_location";
+  let partnerId = session?.partnerId;
+  let viewAsEmail: string | undefined;
+
+  if (isInterne && params.viewAs) {
+    const contact = await getPartnerLocationContactByEmail(params.viewAs);
+    if (contact) {
+      isPartner = true;
+      partnerId = contact.partnerId;
+      viewAsEmail = contact.email;
+    }
+  }
+
+  const partnerContacts = isInterne ? await getPartnerLocationContacts() : [];
+
+  const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
 
   const clientOptions = Array.from(
     new Map(
@@ -42,7 +62,7 @@ export default async function LocationsPage({
 
   const filtered = allLocations.filter((l) => {
     if (!showAll && !l.isActive) return false;
-    if (params.client && l.clientId !== params.client) return false;
+    if (!isPartner && params.client && l.clientId !== params.client) return false;
     if (params.ville && l.city !== params.ville) return false;
     if (params.courant && l.currentType !== params.courant) return false;
     if (params.q) {
@@ -72,10 +92,16 @@ export default async function LocationsPage({
         clients={clientOptions}
         cities={cities}
         currentTypes={currentTypes}
-        values={params}
+        values={{ ...params, viewAs: viewAsEmail }}
+        showClientFilter={!isPartner}
+        partnerContacts={
+          isInterne
+            ? partnerContacts.map((c) => ({ value: c.email, label: `${c.partnerName} — ${c.name} (${c.email})` }))
+            : undefined
+        }
       />
 
-      <LocationsTable locations={filtered} />
+      <LocationsTable locations={filtered} linkable={!isPartner} />
     </div>
   );
 }
