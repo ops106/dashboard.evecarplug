@@ -6,6 +6,7 @@ import {
   getPartnerLocationContacts,
 } from "@/lib/airtable/queries";
 import { isRelocationPending, isTerminationPending } from "@/lib/airtable/mappers";
+import { RELOCATION_STATUS_ORDER, TERMINATION_STATUS_ORDER } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
 import { RelocationRequestsTable } from "@/components/locations/RelocationRequestsTable";
 import { TerminationRequestsTable } from "@/components/locations/TerminationRequestsTable";
@@ -13,6 +14,11 @@ import { MovementsKanbanTabs } from "@/components/locations/MovementsKanbanTabs"
 import { MovementHistoryTable } from "@/components/locations/MovementHistoryTable";
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
 import { ViewAsPartnerFilter } from "@/components/locations/ViewAsPartnerFilter";
+import { StatCard } from "@/components/ui/StatCard";
+import { MapPinIcon, StopOctagonIcon } from "@/components/ui/icons";
+
+const RELOCATION_STATUS_TERMINE = RELOCATION_STATUS_ORDER[RELOCATION_STATUS_ORDER.length - 1];
+const TERMINATION_STATUS_RESILIE = TERMINATION_STATUS_ORDER[TERMINATION_STATUS_ORDER.length - 1];
 
 // Pour l'instant : les deux premiers tableaux de la page Tableau de bord
 // (changements d'adresse et arrêts de location à traiter), plus un onglet
@@ -54,6 +60,8 @@ export default async function MouvementsLocatifsPage({
 
   const pendingRelocations = locations.filter(isRelocationPending);
   const pendingTerminations = locations.filter(isTerminationPending);
+  const completedRelocations = locations.filter((l) => l.relocation.status === RELOCATION_STATUS_TERMINE);
+  const completedTerminations = locations.filter((l) => l.termination.status === TERMINATION_STATUS_RESILIE);
 
   // Le kanban interne affiche tout le pipeline, y compris les statuts
   // terminaux (Terminé/Refusé, Résilié/Refusé) — pas seulement ce qui est
@@ -110,6 +118,13 @@ export default async function MouvementsLocatifsPage({
           extraParams={showHistory ? { tab: "historique" } : undefined}
         />
       )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <StatCard label="Déménagements en cours" value={pendingRelocations.length} icon={<MapPinIcon />} />
+        <StatCard label="Résiliations en cours" value={pendingTerminations.length} icon={<StopOctagonIcon />} />
+        <StatCard label="Déménagements terminés" value={completedRelocations.length} icon={<MapPinIcon />} />
+        <StatCard label="Résiliations réalisées" value={completedTerminations.length} icon={<StopOctagonIcon />} />
+      </div>
 
       <div className="tabs">
         <Link

@@ -5,11 +5,14 @@ import { EXTERNAL_VALIDATION_VALIDE, QUOTE_STATUS_REFUSE, QUOTE_STATUS_VALIDE } 
 import { getQuoteRequestById, updateLocation } from "./queries";
 import { getSessionUser } from "@/lib/session";
 import { canAccessLocation } from "@/lib/authorize";
+import { logUsage } from "./usage-log";
+import { notifyRequestDecision } from "@/lib/request-decision-webhook";
 
 // Ces demandes n'appartiennent pas au pipeline "Location" : pas de page
 // detail /locations/[id] a revalider pour elles (voir getQuoteRequestById).
 function revalidateQuoteViews() {
   revalidatePath("/");
+  revalidatePath("/facturation");
 }
 
 // Valider un devis d'ajout supplémentaire valide aussi la demande externe
@@ -23,6 +26,14 @@ export async function validateQuoteAction(id: string) {
     "Statut devis": QUOTE_STATUS_VALIDE,
     "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_VALIDE,
   });
+  await logUsage({ action: "Valider devis", feature: "Devis", actor: session, detail: location.clientName });
+  await notifyRequestDecision(location, {
+    requestType: "ajout_supplementaire",
+    decision: "Validé",
+    actor: session,
+    quoteAmount: location.quoteAmount,
+    quoteLink: location.quoteLink,
+  });
   revalidateQuoteViews();
 }
 
@@ -35,6 +46,14 @@ export async function refuseQuoteAction(id: string, reason: string) {
   await updateLocation(id, {
     "Statut devis": QUOTE_STATUS_REFUSE,
     "Raison refus devis": reason.trim(),
+  });
+  await logUsage({ action: "Refuser devis", feature: "Devis", actor: session, detail: location.clientName });
+  await notifyRequestDecision(location, {
+    requestType: "ajout_supplementaire",
+    decision: "Refusé",
+    actor: session,
+    quoteAmount: location.quoteAmount,
+    refusalReason: reason.trim(),
   });
   revalidateQuoteViews();
 }

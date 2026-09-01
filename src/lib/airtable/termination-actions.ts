@@ -10,6 +10,8 @@ import { getSessionUser } from "@/lib/session";
 import type { SessionUser } from "@/lib/auth";
 import { canAccessLocation } from "@/lib/authorize";
 import { logMovement } from "./movement-log";
+import { logUsage } from "./usage-log";
+import { notifyTerminationStatusChange } from "@/lib/termination-webhook";
 
 function revalidateTerminationViews(id: string) {
   revalidatePath("/");
@@ -41,11 +43,14 @@ export async function acceptTerminationAction(id: string) {
   const location = await getLocationById(id);
   if (!location) return;
 
-  const next = nextTerminationStatus(location.termination.status);
+  const oldStatus = location.termination.status;
+  const next = nextTerminationStatus(oldStatus);
   if (!next) return;
 
   await updateLocation(id, { "Statut résiliation (Location)": next });
   await logIfFinalTermination(location, next, session);
+  await logUsage({ action: "Accepter résiliation", feature: "Résiliation", actor: session, detail: location.clientName });
+  await notifyTerminationStatusChange(location, { oldStatus, newStatus: next, isNewRequest: false, actor: session });
   revalidateTerminationViews(id);
 }
 
@@ -53,7 +58,18 @@ export async function refuseTerminationAction(id: string) {
   const session = await getSessionUser();
   if (session?.role !== "interne") return;
 
+  const location = await getLocationById(id);
+  if (!location) return;
+
+  const oldStatus = location.termination.status;
   await updateLocation(id, { "Statut résiliation (Location)": TERMINATION_STATUS_REFUSED });
+  await logUsage({ action: "Refuser résiliation", feature: "Résiliation", actor: session, detail: location.clientName });
+  await notifyTerminationStatusChange(location, {
+    oldStatus,
+    newStatus: TERMINATION_STATUS_REFUSED,
+    isNewRequest: false,
+    actor: session,
+  });
   revalidateTerminationViews(id);
 }
 
@@ -70,10 +86,18 @@ export async function setTerminationStatusAction(id: string, status: string) {
   const location = await getLocationById(id);
   if (!location || location.termination.status === status) return;
 
+  const oldStatus = location.termination.status;
   await updateLocation(id, {
     "Statut résiliation (Location)": status as DemandeFields["Statut résiliation (Location)"],
   });
   await logIfFinalTermination(location, status, session);
+  await logUsage({
+    action: "Déplacer résiliation (kanban)",
+    feature: "Résiliation",
+    actor: session,
+    detail: `${location.clientName} → ${status}`,
+  });
+  await notifyTerminationStatusChange(location, { oldStatus, newStatus: status, isNewRequest: false, actor: session });
   revalidateTerminationViews(id);
 }
 
@@ -87,8 +111,11 @@ export async function createTerminationRequestAction(id: string) {
   const location = await getLocationById(id);
   if (!location || !canAccessLocation(session, location)) return;
 
+  const oldStatus = location.termination.status;
+  const newStatus = TERMINATION_STATUS_ORDER[0];
+
   const patch: Record<string, string | null> = {
-    "Statut résiliation (Location)": TERMINATION_STATUS_ORDER[0],
+    "Statut résiliation (Location)": newStatus,
   };
   if (isRelocationPending(location)) {
     patch["Statut modification adresse (Location)"] = null;
@@ -98,5 +125,12 @@ export async function createTerminationRequestAction(id: string) {
   }
 
   await updateLocation(id, patch as Partial<DemandeFields>);
+  await logUsage({
+    action: "Créer demande résiliation",
+    feature: "Résiliation",
+    actor: session,
+    detail: location.clientName,
+  });
+  await notifyTerminationStatusChange(location, { oldStatus, newStatus, isNewRequest: true, actor: session });
   revalidateTerminationViews(id);
 }

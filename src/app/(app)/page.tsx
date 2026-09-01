@@ -96,30 +96,7 @@ export default async function DashboardPage({
       {!isPartner && <PartnerFilter clients={clientOptions} value={params.client} resetHref="/" />}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {isPartner ? (
-          <>
-            <StatCard
-              label="Validations en attente"
-              value={pendingExternalValidation.length}
-              icon={<CheckBadgeIcon />}
-            />
-            <StatCard
-              label="Ajouts supplémentaires à valider"
-              value={pendingQuoteValidation.length}
-              icon={<InboxIcon />}
-            />
-            <StatCard
-              label="Changements d'adresse en attente"
-              value={pendingRelocations.length}
-              icon={<MapPinIcon />}
-            />
-            <StatCard
-              label="Arrêts de location en attente"
-              value={pendingTerminations.length}
-              icon={<StopOctagonIcon />}
-            />
-          </>
-        ) : (
+        {!isPartner && (
           <>
             <StatCard
               label="Changements d'adresse en attente"
@@ -130,19 +107,19 @@ export default async function DashboardPage({
               label="Arrêts de location en attente"
               value={pendingTerminations.length}
               icon={<StopOctagonIcon />}
-            />
-            <StatCard
-              label="Validations en attente"
-              value={pendingExternalValidation.length}
-              icon={<CheckBadgeIcon />}
-            />
-            <StatCard
-              label="Ajouts supplémentaires à valider"
-              value={pendingQuoteValidation.length}
-              icon={<InboxIcon />}
             />
           </>
         )}
+        <StatCard
+          label="Validations en attente"
+          value={pendingExternalValidation.length}
+          icon={<CheckBadgeIcon />}
+        />
+        <StatCard
+          label="Ajouts supplémentaires à valider"
+          value={pendingQuoteValidation.length}
+          icon={<InboxIcon />}
+        />
       </div>
 
       {!isPartner && (

@@ -6,6 +6,7 @@ export const TABLE_IDS = {
   lieux: "tblV7sKUIaq4lSomd",
   contact: "tblg3MlHQCIokfyqv",
   historiqueMouvements: "tbl1ZElC8Aoj8RB5X",
+  journalUtilisation: "tblIv82zxFKOPf4XB",
 } as const;
 
 // Champs de la table "Historique mouvements locatifs" (log des déménagements
@@ -88,6 +89,11 @@ export const PARTENAIRE_FIELDS = {
 // PROSPECTION, ...) ; seul celui-ci correspond a la location de bornes.
 export const PIPELINE_LOCATION = "B2B AT HOME - LOCATION";
 export const PIPELINE_LOCATION_RECORD_ID = "recs7nwMjjGjFg7YZ";
+
+// Pipeline des demandes d'ajout supplementaire / facturation entreprise (voir
+// aussi getPendingQuoteRequests, page Facturation) — distinct du pipeline
+// Location.
+export const PIPELINE_FACTURATION_ENTREPRISE = "B2B AT HOME - FACTURATION ENTREPRISE";
 
 export const ETAPE_INSTALLATION_TERMINEE = "08. Installation terminée";
 export const ETAPE_PROJET_ANNULE = "09. Projet annulé";

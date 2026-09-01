@@ -97,6 +97,31 @@ export interface HistoriqueMouvementFields {
   Date?: string;
 }
 
+// Table "Journal d'utilisation" : trace chaque clic sur une action métier clé
+// (voir usage-log.ts) pour la page KPI utilisation.
+export interface UsageLogFields {
+  "Résumé"?: string;
+  Action?:
+    | "Créer demande déménagement"
+    | "Accepter déménagement"
+    | "Refuser déménagement"
+    | "Déplacer déménagement (kanban)"
+    | "Créer demande résiliation"
+    | "Accepter résiliation"
+    | "Refuser résiliation"
+    | "Déplacer résiliation (kanban)"
+    | "Valider demande externe"
+    | "Refuser demande externe"
+    | "Valider devis"
+    | "Refuser devis"
+    | "Ajouter date connexion Farod";
+  "Fonctionnalité"?: "Déménagement" | "Résiliation" | "Validation externe" | "Devis" | "Connexion Farod";
+  Utilisateur?: string;
+  "Rôle"?: "Interne" | "Partenaire location";
+  "Détail"?: string;
+  Date?: string;
+}
+
 export interface AirtableRecord<TFields> {
   id: string;
   createdTime: string;

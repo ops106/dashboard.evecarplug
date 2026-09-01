@@ -5,6 +5,8 @@ import { EXTERNAL_VALIDATION_REFUSE, EXTERNAL_VALIDATION_VALIDE } from "./fields
 import { getLocationById, updateLocation } from "./queries";
 import { getSessionUser } from "@/lib/session";
 import { canAccessLocation } from "@/lib/authorize";
+import { logUsage } from "./usage-log";
+import { notifyRequestDecision } from "@/lib/request-decision-webhook";
 
 function revalidateExternalValidationViews(id: string) {
   revalidatePath("/");
@@ -27,6 +29,18 @@ export async function validateExternalRequestAction(id: string, entitePartenaire
     { "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_VALIDE, "Entité partenaire": entitePartenaire },
     { typecast: true },
   );
+  await logUsage({
+    action: "Valider demande externe",
+    feature: "Validation externe",
+    actor: session,
+    detail: location.clientName,
+  });
+  await notifyRequestDecision(location, {
+    requestType: "validation_externe",
+    decision: "Validé",
+    actor: session,
+    partnerEntity: entitePartenaire,
+  });
   revalidateExternalValidationViews(id);
 }
 
@@ -36,5 +50,12 @@ export async function refuseExternalRequestAction(id: string) {
   if (!location || !canAccessLocation(session, location)) return;
 
   await updateLocation(id, { "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_REFUSE });
+  await logUsage({
+    action: "Refuser demande externe",
+    feature: "Validation externe",
+    actor: session,
+    detail: location.clientName,
+  });
+  await notifyRequestDecision(location, { requestType: "validation_externe", decision: "Refusé", actor: session });
   revalidateExternalValidationViews(id);
 }

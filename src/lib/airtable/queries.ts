@@ -3,13 +3,21 @@ import { getRecord, listAllRecords, updateRecord } from "./client";
 import {
   PERSONA_INTERNE,
   PERSONA_PARTENAIRE_LOCATION,
+  PIPELINE_FACTURATION_ENTREPRISE,
   PIPELINE_LOCATION,
   PIPELINE_LOCATION_RECORD_ID,
   QUOTE_STATUS_A_VALIDER,
   TABLE_IDS,
 } from "./fields";
 import { type Client, type Location, mapDemandeRecord, mapLieuxName, mapPartenaireRecord } from "./mappers";
-import type { ContactFields, DemandeFields, HistoriqueMouvementFields, LieuxFields, PartenaireFields } from "./types";
+import type {
+  ContactFields,
+  DemandeFields,
+  HistoriqueMouvementFields,
+  LieuxFields,
+  PartenaireFields,
+  UsageLogFields,
+} from "./types";
 
 // Cache court plutot que "no-store" : la table Demande (570+ lignes) prend
 // plusieurs requetes paginees a recuperer, et le refaire a chaque navigation
@@ -84,6 +92,27 @@ export async function getLocationById(id: string): Promise<Location | null> {
 export async function getPendingQuoteRequests(options?: { partnerId?: string }): Promise<Location[]> {
   const [demandeRecords, partenaireNames, lieuxNames] = await Promise.all([
     getAllQuoteDemandeRecords(),
+    buildPartenaireNameMap(),
+    buildLieuxNameMap(),
+  ]);
+  const requests = demandeRecords.map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames));
+  return options?.partnerId ? requests.filter((l) => l.clientId === options.partnerId) : requests;
+}
+
+// Page Facturation : toutes les demandes du pipeline "Facturation
+// entreprise" (pas seulement celles en attente de validation, contrairement
+// a getPendingQuoteRequests), pour un suivi des montants tous statuts
+// confondus.
+async function getAllFacturationDemandeRecords() {
+  return listAllRecords<DemandeFields>(TABLE_IDS.demande, {
+    revalidate: 10,
+    filterByFormula: `FIND("${PIPELINE_FACTURATION_ENTREPRISE}", ARRAYJOIN({Pipeline})) > 0`,
+  });
+}
+
+export async function getAllFacturationRequests(options?: { partnerId?: string }): Promise<Location[]> {
+  const [demandeRecords, partenaireNames, lieuxNames] = await Promise.all([
+    getAllFacturationDemandeRecords(),
     buildPartenaireNameMap(),
     buildLieuxNameMap(),
   ]);
@@ -277,5 +306,36 @@ export async function getMovementHistory(options?: { partnerId?: string }): Prom
   });
 
   return options?.partnerId ? entries.filter((e) => e.clientId === options.partnerId) : entries;
+}
+
+export interface UsageLogEntry {
+  id: string;
+  summary: string;
+  action?: UsageLogFields["Action"];
+  feature?: UsageLogFields["Fonctionnalité"];
+  actor: string;
+  actorRole?: UsageLogFields["Rôle"];
+  detail?: string;
+  date?: string;
+}
+
+// Page KPI utilisation : journal des clics sur les actions
+// métier clés (voir usage-log.ts), réservé au persona interne.
+export async function getUsageLog(): Promise<UsageLogEntry[]> {
+  const records = await listAllRecords<UsageLogFields>(TABLE_IDS.journalUtilisation, {
+    revalidate: 30,
+    sort: [{ field: "Date", direction: "desc" }],
+  });
+
+  return records.map((r) => ({
+    id: r.id,
+    summary: r.fields["Résumé"] ?? "",
+    action: r.fields.Action,
+    feature: r.fields["Fonctionnalité"],
+    actor: r.fields.Utilisateur ?? "Inconnu",
+    actorRole: r.fields["Rôle"],
+    detail: r.fields["Détail"],
+    date: r.fields.Date,
+  }));
 }
 

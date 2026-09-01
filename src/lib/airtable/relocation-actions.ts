@@ -10,6 +10,8 @@ import { getSessionUser } from "@/lib/session";
 import type { SessionUser } from "@/lib/auth";
 import { canAccessLocation } from "@/lib/authorize";
 import { logMovement } from "./movement-log";
+import { logUsage } from "./usage-log";
+import { notifyRelocationStatusChange } from "@/lib/relocation-webhook";
 
 function revalidateRelocationViews(id: string) {
   revalidatePath("/");
@@ -46,11 +48,14 @@ export async function acceptRelocationAction(id: string) {
   const location = await getLocationById(id);
   if (!location) return;
 
-  const next = nextRelocationStatus(location.relocation.status);
+  const oldStatus = location.relocation.status;
+  const next = nextRelocationStatus(oldStatus);
   if (!next) return;
 
   await updateLocation(id, { "Statut modification adresse (Location)": next });
   await logIfFinalRelocation(location, next, session);
+  await logUsage({ action: "Accepter déménagement", feature: "Déménagement", actor: session, detail: location.clientName });
+  await notifyRelocationStatusChange(location, { oldStatus, newStatus: next, isNewRequest: false, actor: session });
   revalidateRelocationViews(id);
 }
 
@@ -58,7 +63,18 @@ export async function refuseRelocationAction(id: string) {
   const session = await getSessionUser();
   if (session?.role !== "interne") return;
 
+  const location = await getLocationById(id);
+  if (!location) return;
+
+  const oldStatus = location.relocation.status;
   await updateLocation(id, { "Statut modification adresse (Location)": RELOCATION_STATUS_REFUSED });
+  await logUsage({ action: "Refuser déménagement", feature: "Déménagement", actor: session, detail: location.clientName });
+  await notifyRelocationStatusChange(location, {
+    oldStatus,
+    newStatus: RELOCATION_STATUS_REFUSED,
+    isNewRequest: false,
+    actor: session,
+  });
   revalidateRelocationViews(id);
 }
 
@@ -75,10 +91,18 @@ export async function setRelocationStatusAction(id: string, status: string) {
   const location = await getLocationById(id);
   if (!location || location.relocation.status === status) return;
 
+  const oldStatus = location.relocation.status;
   await updateLocation(id, {
     "Statut modification adresse (Location)": status as DemandeFields["Statut modification adresse (Location)"],
   });
   await logIfFinalRelocation(location, status, session);
+  await logUsage({
+    action: "Déplacer déménagement (kanban)",
+    feature: "Déménagement",
+    actor: session,
+    detail: `${location.clientName} → ${status}`,
+  });
+  await notifyRelocationStatusChange(location, { oldStatus, newStatus: status, isNewRequest: false, actor: session });
   revalidateRelocationViews(id);
 }
 
@@ -96,8 +120,11 @@ export async function createRelocationRequestAction(id: string, formData: FormDa
   const nouveauCp = String(formData.get("nouveauCp") ?? "").trim();
   const nouvelleVille = String(formData.get("nouvelleVille") ?? "").trim();
 
+  const oldStatus = location.relocation.status;
+  const newStatus = RELOCATION_STATUS_ORDER[0];
+
   const patch: Record<string, string | null> = {
-    "Statut modification adresse (Location)": RELOCATION_STATUS_ORDER[0],
+    "Statut modification adresse (Location)": newStatus,
     "Nouvelle adresse (Location)": nouvelleAdresse,
     "Nouveau CP (Location)": nouveauCp,
     "Nouvelle Ville (Location)": nouvelleVille,
@@ -107,5 +134,18 @@ export async function createRelocationRequestAction(id: string, formData: FormDa
   }
 
   await updateLocation(id, patch as Partial<DemandeFields>);
+  await logUsage({
+    action: "Créer demande déménagement",
+    feature: "Déménagement",
+    actor: session,
+    detail: location.clientName,
+  });
+  await notifyRelocationStatusChange(location, {
+    oldStatus,
+    newStatus,
+    isNewRequest: true,
+    actor: session,
+    addressOverride: { newAddress: nouvelleAdresse, newPostalCode: nouveauCp, newCity: nouvelleVille },
+  });
   revalidateRelocationViews(id);
 }
