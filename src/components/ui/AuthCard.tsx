@@ -19,7 +19,7 @@ export function AuthCard({ children }: { children: React.ReactNode }) {
             borderRadius: "var(--radius-card) var(--radius-card) 0 0",
           }}
         />
-        <div className="mb-2 flex flex-col items-center gap-3 text-center">
+        <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <Image src="/evecarplug-logo.svg" alt="EVE CAR PLUG" width={150} height={67} priority />
         </div>
         {children}

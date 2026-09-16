@@ -19,7 +19,7 @@ export default async function LoginPage({
   return (
     <AuthCard>
       <form action={loginAction} className="space-y-5">
-        <h1 className="text-center" style={{ fontSize: 22 }}>
+        <h1 className="text-center" style={{ fontSize: 15 }}>
           Plateforme de suivi
         </h1>
 
