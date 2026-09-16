@@ -31,6 +31,7 @@ export const CONTACT_FIELDS = {
   email: "Email",
   persona: "Persona",
   partenaire: "Partenaire",
+  motDePasseHash: "Mot de passe (hash)",
 } as const;
 
 // Personas autorisés à se connecter à l'outil.

@@ -173,6 +173,10 @@ export interface AuthorizedContact {
   // Id du Partenaire lie, uniquement pour role === "partenaire_location" —
   // sert a scoper toutes les requetes de donnees a cette seule societe.
   partnerId?: string;
+  // Hash PBKDF2 du mot de passe (jamais le mot de passe en clair) —
+  // undefined tant que le contact n'a pas encore defini de mot de passe via
+  // /login/set-password (voir src/lib/password.ts).
+  passwordHash?: string;
 }
 
 // Echappe les guillemets/antislashs avant interpolation dans une formule
@@ -181,10 +185,9 @@ function escapeFormulaString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-// Phase 1 du login par email : verifie seulement que l'email correspond a un
-// Contact avec Persona = "Interne" ou "Partenaire location". Aucune preuve de
-// possession de la boite mail n'est demandee ici (voir src/lib/auth.ts) — a
-// completer par un lien magique dans une phase suivante.
+// Verifie que l'email correspond a un Contact avec Persona = "Interne" ou
+// "Partenaire location", et renvoie son hash de mot de passe s'il en a
+// defini un (voir loginAction / src/lib/password.ts pour la verification).
 export async function getAuthorizedContactByEmail(email: string): Promise<AuthorizedContact | null> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return null;
@@ -199,16 +202,24 @@ export async function getAuthorizedContactByEmail(email: string): Promise<Author
 
   const name = [record.fields.Prénom, record.fields.Nom].filter(Boolean).join(" ") || normalized;
 
+  const passwordHash = record.fields["Mot de passe (hash)"] || undefined;
+
   if (record.fields.Persona === PERSONA_PARTENAIRE_LOCATION) {
     const partnerId = record.fields.Partenaire?.[0];
     // Persona "Partenaire location" sans Partenaire lie : donnee incoherente
     // cote Airtable, on refuse l'acces plutot que de risquer un scope vide
     // (qui pourrait etre interprete comme "voir tout" plus loin dans le code).
     if (!partnerId) return null;
-    return { id: record.id, email: normalized, name, role: "partenaire_location", partnerId };
+    return { id: record.id, email: normalized, name, role: "partenaire_location", partnerId, passwordHash };
   }
 
-  return { id: record.id, email: normalized, name, role: "interne" };
+  return { id: record.id, email: normalized, name, role: "interne", passwordHash };
+}
+
+// Ecrit le hash du mot de passe defini via /login/set-password. Jamais
+// appele avec le mot de passe en clair (voir src/lib/password.ts).
+export async function setContactPassword(contactId: string, passwordHash: string): Promise<void> {
+  await updateRecord<ContactFields>(TABLE_IDS.contact, contactId, { "Mot de passe (hash)": passwordHash });
 }
 
 export interface PartnerLocationContact {

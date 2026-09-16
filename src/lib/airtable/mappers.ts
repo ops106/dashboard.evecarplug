@@ -73,6 +73,7 @@ export interface Location {
   quoteLink?: string;
   quoteRefusalReason?: string;
   quoteAmount?: number;
+  salesRepEmail?: string;
 }
 
 export interface Client {
@@ -233,6 +234,7 @@ export function mapDemandeRecord(
     quoteLink: f["Lien du devis"],
     quoteRefusalReason: f["Raison refus devis"],
     quoteAmount: f["Montant du devis entreprise"],
+    salesRepEmail: f["Email (from Commercial)"]?.[0],
   };
 }
 

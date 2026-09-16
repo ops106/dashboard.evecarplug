@@ -17,6 +17,7 @@ export interface RequestDecisionWebhookPayload {
   requesterName: string;
   requesterEmail?: string;
   requesterPhone?: string;
+  salesRepEmail?: string;
   decision: "Validé" | "Refusé";
   partnerEntity?: string;
   quoteAmount?: number;
@@ -27,7 +28,10 @@ export interface RequestDecisionWebhookPayload {
   timestamp: string;
 }
 
-type WebhookLocation = Pick<Location, "id" | "clientId" | "clientName" | "requesterName" | "email" | "phone">;
+type WebhookLocation = Pick<
+  Location,
+  "id" | "clientId" | "clientName" | "requesterName" | "email" | "phone" | "salesRepEmail"
+>;
 
 // Notifie un scénario Make (webhook custom) à chaque décision (Validé/Refusé)
 // sur une demande de validation externe ou un devis d'ajout supplémentaire.
@@ -59,6 +63,7 @@ export async function notifyRequestDecision(
     requesterName: location.requesterName,
     requesterEmail: location.email,
     requesterPhone: location.phone,
+    salesRepEmail: location.salesRepEmail,
     decision: params.decision,
     partnerEntity: params.partnerEntity,
     quoteAmount: params.quoteAmount,

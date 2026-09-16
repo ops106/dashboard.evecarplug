@@ -156,7 +156,7 @@ export default async function DashboardPage({
 
       <div>
         <div className="mb-3 flex items-center gap-2">
-          <h4>Ajouts supplémentaires à valider par l&apos;entreprise</h4>
+          <h4>Travaux supplémentaires à valider</h4>
           <span className="tag tag-accent">{pendingQuoteValidation.length}</span>
         </div>
         <QuoteValidationTable locations={pendingQuoteValidation} />

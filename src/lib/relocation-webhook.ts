@@ -10,6 +10,7 @@ export interface RelocationWebhookPayload {
   requesterName: string;
   requesterEmail?: string;
   requesterPhone?: string;
+  salesRepEmail?: string;
   oldStatus?: string;
   newStatus: string;
   isNewRequest: boolean;
@@ -23,7 +24,7 @@ export interface RelocationWebhookPayload {
 
 type WebhookLocation = Pick<
   Location,
-  "id" | "clientId" | "clientName" | "requesterName" | "email" | "phone" | "relocation"
+  "id" | "clientId" | "clientName" | "requesterName" | "email" | "phone" | "relocation" | "salesRepEmail"
 >;
 
 // Notifie un scénario Make (webhook custom) à chaque changement de statut
@@ -56,6 +57,7 @@ export async function notifyRelocationStatusChange(
     requesterName: location.requesterName,
     requesterEmail: location.email,
     requesterPhone: location.phone,
+    salesRepEmail: location.salesRepEmail,
     oldStatus: params.oldStatus,
     newStatus: params.newStatus,
     isNewRequest: params.isNewRequest,
