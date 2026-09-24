@@ -8,7 +8,13 @@ import { VIEW_AS_COOKIE_NAME } from "@/lib/view-as";
 // generation statique au build, tout est rendu a la demande.
 export const dynamic = "force-dynamic";
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  modal: React.ReactNode;
+}) {
   const session = await getSessionUser();
   const isInterne = session?.role === "interne";
 
@@ -31,6 +37,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <main className="flex-1 px-6 py-8 app-main" style={{ overflowX: "auto" }}>
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
+      {modal}
     </div>
   );
 }

@@ -1,19 +1,21 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getLocationById } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
 import { LocationDetailForm } from "@/components/locations/LocationDetailForm";
+import { SlideOver } from "@/components/ui/SlideOver";
 
-export default async function LocationDetailPage({
+// Route interceptée : affichée en modale glissante lorsqu'on navigue vers
+// /locations/[id] depuis une page sous (app) (clic sur un nom de client dans
+// un tableau). Un accès direct par URL (partagé, rafraîchissement, lien de
+// webhook) contourne l'interception et affiche la page complète normale
+// (voir ../../locations/[id]/page.tsx).
+export default async function LocationDetailModal({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
 
-  // Fiche complète interne (specs, statut de vente, pipeline) — non destinée
-  // aux partenaires, qui ont déjà tout ce dont ils ont besoin (adresse,
-  // actions Déménagement/Résiliation) sur la liste des locations.
   const session = await getSessionUser();
   if (session?.role !== "interne") redirect("/locations");
 
@@ -21,11 +23,8 @@ export default async function LocationDetailPage({
   if (!location) notFound();
 
   return (
-    <div className="space-y-6">
-      <Link href="/locations" className="text-sm text-muted hover:text-[var(--color-accent)]">
-        ← Retour aux locations
-      </Link>
+    <SlideOver title="Fiche location">
       <LocationDetailForm location={location} />
-    </div>
+    </SlideOver>
   );
 }
