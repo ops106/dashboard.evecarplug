@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { RelocationRequestsTable } from "@/components/locations/RelocationRequestsTable";
 import { TerminationRequestsTable } from "@/components/locations/TerminationRequestsTable";
-import { MovementsKanbanTabs } from "@/components/locations/MovementsKanbanTabs";
+import { MovementsStatusTabs } from "@/components/locations/MovementsStatusTabs";
 import { MovementHistoryTable } from "@/components/locations/MovementHistoryTable";
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
 import { StatCard } from "@/components/ui/StatCard";
@@ -43,7 +43,7 @@ export default async function MouvementsLocatifsPage({
   const completedRelocations = locations.filter((l) => l.relocation.status === RELOCATION_STATUS_TERMINE);
   const completedTerminations = locations.filter((l) => l.termination.status === TERMINATION_STATUS_RESILIE);
 
-  // Le kanban interne affiche tout le pipeline, y compris les statuts
+  // La liste interne affiche tout le pipeline, y compris les statuts
   // terminaux (Terminé/Refusé, Résilié/Refusé) — pas seulement ce qui est
   // encore à traiter.
   const allRelocations = locations.filter((l) => Boolean(l.relocation.status));
@@ -122,7 +122,7 @@ export default async function MouvementsLocatifsPage({
           </div>
         </>
       ) : (
-        <MovementsKanbanTabs relocations={allRelocations} terminations={allTerminations} />
+        <MovementsStatusTabs relocations={allRelocations} terminations={allTerminations} />
       )}
     </div>
   );

@@ -3,10 +3,10 @@
 import { useState } from "react";
 import type { Location } from "@/lib/airtable/mappers";
 import { isRelocationPending, isTerminationPending } from "@/lib/airtable/mappers";
-import { RelocationKanban } from "@/components/locations/RelocationKanban";
-import { TerminationKanban } from "@/components/locations/TerminationKanban";
+import { RelocationStatusTable } from "@/components/locations/RelocationStatusTable";
+import { TerminationStatusTable } from "@/components/locations/TerminationStatusTable";
 
-export function MovementsKanbanTabs({
+export function MovementsStatusTabs({
   relocations,
   terminations,
 }: {
@@ -16,8 +16,8 @@ export function MovementsKanbanTabs({
   const [tab, setTab] = useState<"demenagement" | "resiliation">("demenagement");
 
   // Le badge de l'onglet compte ce qui est encore à traiter — pas les
-  // statuts terminaux (Terminé/Refusé, Résilié/Refusé) déjà affichés dans le
-  // kanban à titre d'historique.
+  // statuts terminaux (Terminé/Refusé, Résilié/Refusé) déjà affichés dans la
+  // liste à titre d'historique.
   const relocationPendingCount = relocations.filter(isRelocationPending).length;
   const terminationPendingCount = terminations.filter(isTerminationPending).length;
 
@@ -46,9 +46,9 @@ export function MovementsKanbanTabs({
         </button>
       </div>
       {tab === "demenagement" ? (
-        <RelocationKanban locations={relocations} />
+        <RelocationStatusTable locations={relocations} />
       ) : (
-        <TerminationKanban locations={terminations} />
+        <TerminationStatusTable locations={terminations} />
       )}
     </div>
   );
