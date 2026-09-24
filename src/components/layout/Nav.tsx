@@ -25,6 +25,11 @@ const NAV_GROUPS: { label?: string; links: NavLink[] }[] = [
     links: [
       { href: "/suivi-demandes", label: "Suivi des demandes" },
       { href: "/facturation", label: "Facturation" },
+    ],
+  },
+  {
+    label: "Partie interne",
+    links: [
       { href: "/clients", label: "Clients", interneOnly: true },
       { href: "/indicateurs", label: "KPI utilisation", interneOnly: true },
     ],

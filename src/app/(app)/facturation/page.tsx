@@ -55,7 +55,7 @@ export default async function FacturationPage({
       {isPartner && (
         <>
           <div className="mb-3 flex items-center gap-2">
-            <h4>Ajouts supplémentaires</h4>
+            <h4>Travaux supplémentaires</h4>
             <span className="tag tag-accent">{filtered.length}</span>
           </div>
           <FacturationTable locations={filtered} />
