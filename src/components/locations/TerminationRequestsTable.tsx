@@ -2,9 +2,11 @@ import { Fragment } from "react";
 import Link from "next/link";
 import type { Location } from "@/lib/airtable/mappers";
 import { canAcceptTermination, canRefuseTermination, groupTerminationsByStatus, terminationAcceptLabel } from "@/lib/airtable/mappers";
+import { TERMINATION_STATUS_ORDER, TERMINATION_STATUS_REFUSED } from "@/lib/airtable/fields";
 import { acceptTerminationAction, refuseTerminationAction } from "@/lib/airtable/termination-actions";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/Badge";
+import { StatusProgressBar } from "@/components/ui/StatusProgressBar";
 
 export function TerminationRequestsTable({
   locations,
@@ -20,9 +22,9 @@ export function TerminationRequestsTable({
   }
 
   const groups = groupTerminationsByStatus(locations);
-  // Statut et Actions sont mutuellement exclusifs (l'un ou l'autre selon
-  // canManage) : la colonne compte toujours 6.
-  const columnCount = 6;
+  // Statut+Progression et Actions sont mutuellement exclusifs (l'un ou
+  // l'autre selon canManage).
+  const columnCount = canManage ? 6 : 7;
 
   return (
     <div className="card overflow-x-auto p-0">
@@ -31,7 +33,12 @@ export function TerminationRequestsTable({
           <tr>
             <th>Société</th>
             <th>Client</th>
-            {!canManage && <th>Statut</th>}
+            {!canManage && (
+              <>
+                <th>Statut</th>
+                <th>Progression</th>
+              </>
+            )}
             <th>Adresse</th>
             <th>Code postal</th>
             <th>Ville</th>
@@ -48,15 +55,7 @@ export function TerminationRequestsTable({
               </tr>
               {group.locations.map((location) => (
                 <tr key={location.id}>
-                  <td className="font-medium">
-                    {linkable ? (
-                      <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                        {location.clientName}
-                      </Link>
-                    ) : (
-                      location.clientName
-                    )}
-                  </td>
+                  <td className="font-medium">{location.clientName}</td>
                   <td>
                     {linkable ? (
                       <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
@@ -67,9 +66,18 @@ export function TerminationRequestsTable({
                     )}
                   </td>
                   {!canManage && (
-                    <td>
-                      <StatusBadge value={location.termination.status} />
-                    </td>
+                    <>
+                      <td>
+                        <StatusBadge value={location.termination.status} />
+                      </td>
+                      <td>
+                        <StatusProgressBar
+                          order={TERMINATION_STATUS_ORDER}
+                          refusedStatus={TERMINATION_STATUS_REFUSED}
+                          status={location.termination.status}
+                        />
+                      </td>
+                    </>
                   )}
                   <td>{location.address || "—"}</td>
                   <td>{location.postalCode || "—"}</td>

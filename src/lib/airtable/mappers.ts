@@ -89,6 +89,11 @@ function firstLinkedId(ids?: string[]): string | undefined {
   return ids && ids.length > 0 ? ids[0] : undefined;
 }
 
+// Valeur de repli quand le champ "Partenaire" de la Demande n'est pas lie (ou
+// pointe vers un record introuvable) — voir queries.ts pour le filtrage qui
+// masque ces lignes des listes (persona interne).
+export const CLIENT_INCONNU = "Client inconnu";
+
 function isLocationActive(fields: DemandeFields): boolean {
   const stage = fields[DEMANDE_FIELDS.etapeDeVente as keyof DemandeFields] as string | undefined;
   const status = fields[DEMANDE_FIELDS.statut as keyof DemandeFields] as string | undefined;
@@ -197,7 +202,7 @@ export function mapDemandeRecord(
   return {
     id: record.id,
     clientId,
-    clientName: (clientId && partenaireNames.get(clientId)) || "Client inconnu",
+    clientName: (clientId && partenaireNames.get(clientId)) || CLIENT_INCONNU,
     contact: f.Contact,
     partnerEntity: f["Entité partenaire"],
     constructionDate: f["Date de chantier"],

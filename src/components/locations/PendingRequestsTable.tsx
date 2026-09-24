@@ -40,15 +40,7 @@ export function PendingRequestsTable({
               </tr>
               {group.locations.map((location) => (
                 <tr key={location.id}>
-                  <td className="font-medium">
-                    {linkable ? (
-                      <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                        {location.clientName}
-                      </Link>
-                    ) : (
-                      location.clientName
-                    )}
-                  </td>
+                  <td className="font-medium">{location.clientName}</td>
                   <td>
                     {linkable ? (
                       <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">

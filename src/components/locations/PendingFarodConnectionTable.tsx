@@ -24,11 +24,7 @@ export function PendingFarodConnectionTable({ locations }: { locations: Location
         <tbody>
           {locations.map((location) => (
             <tr key={location.id}>
-              <td className="font-medium">
-                <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                  {location.clientName}
-                </Link>
-              </td>
+              <td className="font-medium">{location.clientName}</td>
               <td>
                 <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
                   {location.contact || "—"}

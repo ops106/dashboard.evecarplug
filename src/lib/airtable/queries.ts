@@ -9,7 +9,14 @@ import {
   QUOTE_STATUS_A_VALIDER,
   TABLE_IDS,
 } from "./fields";
-import { type Client, type Location, mapDemandeRecord, mapLieuxName, mapPartenaireRecord } from "./mappers";
+import {
+  CLIENT_INCONNU,
+  type Client,
+  type Location,
+  mapDemandeRecord,
+  mapLieuxName,
+  mapPartenaireRecord,
+} from "./mappers";
 import type {
   ContactFields,
   DemandeFields,
@@ -68,7 +75,9 @@ export async function getAllLocations(options?: { partnerId?: string }): Promise
     buildPartenaireNameMap(),
     buildLieuxNameMap(),
   ]);
-  const locations = demandeRecords.map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames));
+  const locations = demandeRecords
+    .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
+    .filter((l) => l.clientName !== CLIENT_INCONNU);
   return options?.partnerId ? locations.filter((l) => l.clientId === options.partnerId) : locations;
 }
 
@@ -95,7 +104,9 @@ export async function getPendingQuoteRequests(options?: { partnerId?: string }):
     buildPartenaireNameMap(),
     buildLieuxNameMap(),
   ]);
-  const requests = demandeRecords.map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames));
+  const requests = demandeRecords
+    .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
+    .filter((l) => l.clientName !== CLIENT_INCONNU);
   return options?.partnerId ? requests.filter((l) => l.clientId === options.partnerId) : requests;
 }
 
@@ -116,7 +127,9 @@ export async function getAllFacturationRequests(options?: { partnerId?: string }
     buildPartenaireNameMap(),
     buildLieuxNameMap(),
   ]);
-  const requests = demandeRecords.map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames));
+  const requests = demandeRecords
+    .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
+    .filter((l) => l.clientName !== CLIENT_INCONNU);
   return options?.partnerId ? requests.filter((l) => l.clientId === options.partnerId) : requests;
 }
 

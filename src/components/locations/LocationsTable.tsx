@@ -34,17 +34,7 @@ export function LocationsTable({
         <tbody>
           {locations.map((location) => (
             <tr key={location.id}>
-              {showClient && (
-                <td className="font-medium">
-                  {linkable ? (
-                    <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                      {location.clientName}
-                    </Link>
-                  ) : (
-                    location.clientName
-                  )}
-                </td>
-              )}
+              {showClient && <td className="font-medium">{location.clientName}</td>}
               <td>
                 {linkable ? (
                   <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">

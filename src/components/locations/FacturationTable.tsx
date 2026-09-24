@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Location } from "@/lib/airtable/mappers";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ViewQuoteButton } from "@/components/locations/ViewQuoteButton";
@@ -5,7 +6,8 @@ import { formatDate } from "@/lib/format";
 
 // Ces demandes appartiennent au pipeline "Facturation entreprise", distinct
 // de celui des locations (voir getAllFacturationRequests) : pas de page
-// /locations/[id] a lier.
+// /locations/[id] a lier — le nom du client renvoie donc vers sa fiche
+// societe (/clients/[id]).
 export function FacturationTable({ locations }: { locations: Location[] }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune demande de facturation validée ne correspond à ces critères." />;
@@ -29,7 +31,15 @@ export function FacturationTable({ locations }: { locations: Location[] }) {
           {locations.map((location) => (
             <tr key={location.id}>
               <td className="font-medium">{location.clientName}</td>
-              <td>{location.contact || "—"}</td>
+              <td>
+                {location.clientId ? (
+                  <Link href={`/clients/${location.clientId}`} className="text-inherit no-underline hover:underline">
+                    {location.contact || "—"}
+                  </Link>
+                ) : (
+                  location.contact || "—"
+                )}
+              </td>
               <td>{location.email || "—"}</td>
               <td>{location.phone || "—"}</td>
               <td>{location.quoteAmount != null ? `${location.quoteAmount.toLocaleString("fr-FR")} €` : "—"}</td>

@@ -2,9 +2,11 @@ import { Fragment } from "react";
 import Link from "next/link";
 import type { Location } from "@/lib/airtable/mappers";
 import { canAcceptRelocation, canRefuseRelocation, groupRelocationsByStatus, relocationAcceptLabel } from "@/lib/airtable/mappers";
+import { RELOCATION_STATUS_ORDER, RELOCATION_STATUS_REFUSED } from "@/lib/airtable/fields";
 import { acceptRelocationAction, refuseRelocationAction } from "@/lib/airtable/relocation-actions";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/Badge";
+import { StatusProgressBar } from "@/components/ui/StatusProgressBar";
 
 export function RelocationRequestsTable({
   locations,
@@ -20,9 +22,9 @@ export function RelocationRequestsTable({
   }
 
   const groups = groupRelocationsByStatus(locations);
-  // Statut et Actions sont mutuellement exclusifs (l'un ou l'autre selon
-  // canManage) : la colonne compte toujours 6.
-  const columnCount = 6;
+  // Statut+Progression et Actions sont mutuellement exclusifs (l'un ou
+  // l'autre selon canManage).
+  const columnCount = canManage ? 6 : 7;
 
   return (
     <div className="card overflow-x-auto p-0">
@@ -31,7 +33,12 @@ export function RelocationRequestsTable({
           <tr>
             <th>Société</th>
             <th>Client</th>
-            {!canManage && <th>Statut</th>}
+            {!canManage && (
+              <>
+                <th>Statut</th>
+                <th>Progression</th>
+              </>
+            )}
             <th>Nouvelle adresse</th>
             <th>Nouveau CP</th>
             <th>Nouvelle ville</th>
@@ -48,15 +55,7 @@ export function RelocationRequestsTable({
               </tr>
               {group.locations.map((location) => (
                 <tr key={location.id}>
-                  <td className="font-medium">
-                    {linkable ? (
-                      <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
-                        {location.clientName}
-                      </Link>
-                    ) : (
-                      location.clientName
-                    )}
-                  </td>
+                  <td className="font-medium">{location.clientName}</td>
                   <td>
                     {linkable ? (
                       <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
@@ -67,9 +66,18 @@ export function RelocationRequestsTable({
                     )}
                   </td>
                   {!canManage && (
-                    <td>
-                      <StatusBadge value={location.relocation.status} />
-                    </td>
+                    <>
+                      <td>
+                        <StatusBadge value={location.relocation.status} />
+                      </td>
+                      <td>
+                        <StatusProgressBar
+                          order={RELOCATION_STATUS_ORDER}
+                          refusedStatus={RELOCATION_STATUS_REFUSED}
+                          status={location.relocation.status}
+                        />
+                      </td>
+                    </>
                   )}
                   <td>{location.relocation.newAddress || "—"}</td>
                   <td>{location.relocation.newPostalCode || "—"}</td>
