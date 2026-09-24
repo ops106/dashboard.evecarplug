@@ -1,19 +1,14 @@
 import Link from "next/link";
-import {
-  getAllLocations,
-  getMovementHistory,
-  getPartnerLocationContactByEmail,
-  getPartnerLocationContacts,
-} from "@/lib/airtable/queries";
+import { getAllLocations, getMovementHistory } from "@/lib/airtable/queries";
 import { isRelocationPending, isTerminationPending } from "@/lib/airtable/mappers";
 import { RELOCATION_STATUS_ORDER, TERMINATION_STATUS_ORDER } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
 import { RelocationRequestsTable } from "@/components/locations/RelocationRequestsTable";
 import { TerminationRequestsTable } from "@/components/locations/TerminationRequestsTable";
 import { MovementsKanbanTabs } from "@/components/locations/MovementsKanbanTabs";
 import { MovementHistoryTable } from "@/components/locations/MovementHistoryTable";
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
-import { ViewAsPartnerFilter } from "@/components/locations/ViewAsPartnerFilter";
 import { StatCard } from "@/components/ui/StatCard";
 import { MapPinIcon, StopOctagonIcon } from "@/components/ui/icons";
 
@@ -26,27 +21,12 @@ const TERMINATION_STATUS_RESILIE = TERMINATION_STATUS_ORDER[TERMINATION_STATUS_O
 export default async function MouvementsLocatifsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ client?: string; viewAs?: string; tab?: string }>;
+  searchParams: Promise<{ client?: string; tab?: string }>;
 }) {
   const params = await searchParams;
   const showHistory = params.tab === "historique";
   const session = await getSessionUser();
-  const isInterne = session?.role === "interne";
-
-  let isPartner = session?.role === "partenaire_location";
-  let partnerId = session?.partnerId;
-  let viewAsEmail: string | undefined;
-
-  if (isInterne && params.viewAs) {
-    const contact = await getPartnerLocationContactByEmail(params.viewAs);
-    if (contact) {
-      isPartner = true;
-      partnerId = contact.partnerId;
-      viewAsEmail = contact.email;
-    }
-  }
-
-  const partnerContacts = isInterne ? await getPartnerLocationContacts() : [];
+  const { isPartner, partnerId } = await getViewAsContext(session);
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
 
@@ -74,16 +54,6 @@ export default async function MouvementsLocatifsPage({
   const tabHref = (tab?: string) => {
     const qs = new URLSearchParams();
     if (params.client && !isPartner) qs.set("client", params.client);
-    if (viewAsEmail) qs.set("viewAs", viewAsEmail);
-    if (tab) qs.set("tab", tab);
-    const query = qs.toString();
-    return `/mouvements-locatifs${query ? `?${query}` : ""}`;
-  };
-
-  // Le lien "Réinitialiser" du sélecteur "Voir comme partenaire" doit
-  // justement retirer viewAs, contrairement à tabHref qui le préserve.
-  const viewAsResetHref = (tab?: string) => {
-    const qs = new URLSearchParams();
     if (tab) qs.set("tab", tab);
     const query = qs.toString();
     return `/mouvements-locatifs${query ? `?${query}` : ""}`;
@@ -97,18 +67,6 @@ export default async function MouvementsLocatifsPage({
           Changements d&apos;adresse et arrêts de location en cours.
         </p>
       </div>
-
-      {isInterne && (
-        <ViewAsPartnerFilter
-          contacts={partnerContacts.map((c) => ({
-            value: c.email,
-            label: `${c.partnerName} — ${c.name} (${c.email})`,
-          }))}
-          value={viewAsEmail}
-          resetHref={viewAsResetHref(showHistory ? "historique" : undefined)}
-          extraParams={showHistory ? { tab: "historique" } : undefined}
-        />
-      )}
 
       {!isPartner && (
         <PartnerFilter

@@ -1,41 +1,21 @@
 import Link from "next/link";
-import {
-  getAllFacturationRequests,
-  getAllLocations,
-  getPartnerLocationContactByEmail,
-  getPartnerLocationContacts,
-} from "@/lib/airtable/queries";
+import { getAllFacturationRequests, getAllLocations } from "@/lib/airtable/queries";
 import { ETAPE_INSTALLATION_TERMINEE, QUOTE_STATUS_VALIDE } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
 import { FacturationTable } from "@/components/locations/FacturationTable";
 import { PendingFarodConnectionTable } from "@/components/locations/PendingFarodConnectionTable";
-import { ViewAsPartnerFilter } from "@/components/locations/ViewAsPartnerFilter";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function FacturationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ viewAs?: string; q?: string }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const isInterne = session?.role === "interne";
-
-  let isPartner = session?.role === "partenaire_location";
-  let partnerId = session?.partnerId;
-  let viewAsEmail: string | undefined;
-
-  if (isInterne && params.viewAs) {
-    const contact = await getPartnerLocationContactByEmail(params.viewAs);
-    if (contact) {
-      isPartner = true;
-      partnerId = contact.partnerId;
-      viewAsEmail = contact.email;
-    }
-  }
-
-  const partnerContacts = isInterne ? await getPartnerLocationContacts() : [];
+  const { isPartner, partnerId } = await getViewAsContext(session);
 
   // "Ajouts supplémentaires" (montants de devis) : réservé au persona
   // partenaire — l'interne suit plutôt les connexions Farod ci-dessous.
@@ -71,17 +51,6 @@ export default async function FacturationPage({
             : "Suivi des connexions Farod en attente."}
         </p>
       </div>
-
-      {isInterne && (
-        <ViewAsPartnerFilter
-          contacts={partnerContacts.map((c) => ({
-            value: c.email,
-            label: `${c.partnerName} — ${c.name} (${c.email})`,
-          }))}
-          value={viewAsEmail}
-          resetHref="/facturation"
-        />
-      )}
 
       {isPartner && (
         <>

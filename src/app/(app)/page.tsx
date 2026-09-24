@@ -1,11 +1,7 @@
-import {
-  getAllLocations,
-  getPartnerLocationContactByEmail,
-  getPartnerLocationContacts,
-  getPendingQuoteRequests,
-} from "@/lib/airtable/queries";
+import { getAllLocations, getPendingQuoteRequests } from "@/lib/airtable/queries";
 import { isRelocationPending, isTerminationPending, needsExternalValidation } from "@/lib/airtable/mappers";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
 import { StatCard } from "@/components/ui/StatCard";
 import { CheckBadgeIcon, InboxIcon, MapPinIcon, StopOctagonIcon } from "@/components/ui/icons";
 import { RelocationRequestsTable } from "@/components/locations/RelocationRequestsTable";
@@ -13,31 +9,15 @@ import { TerminationRequestsTable } from "@/components/locations/TerminationRequ
 import { ExternalValidationTable } from "@/components/locations/ExternalValidationTable";
 import { QuoteValidationTable } from "@/components/locations/QuoteValidationTable";
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
-import { ViewAsPartnerFilter } from "@/components/locations/ViewAsPartnerFilter";
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ client?: string; viewAs?: string }>;
+  searchParams: Promise<{ client?: string }>;
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const isInterne = session?.role === "interne";
-
-  let isPartner = session?.role === "partenaire_location";
-  let partnerId = session?.partnerId;
-  let viewAsEmail: string | undefined;
-
-  if (isInterne && params.viewAs) {
-    const contact = await getPartnerLocationContactByEmail(params.viewAs);
-    if (contact) {
-      isPartner = true;
-      partnerId = contact.partnerId;
-      viewAsEmail = contact.email;
-    }
-  }
-
-  const partnerContacts = isInterne ? await getPartnerLocationContacts() : [];
+  const { isPartner, partnerId } = await getViewAsContext(session);
 
   const [allLocations, allQuoteRequests] = await Promise.all([
     getAllLocations(isPartner ? { partnerId } : undefined),
@@ -81,17 +61,6 @@ export default async function DashboardPage({
           Vue d&apos;ensemble des locations de bornes électriques.
         </p>
       </div>
-
-      {isInterne && (
-        <ViewAsPartnerFilter
-          contacts={partnerContacts.map((c) => ({
-            value: c.email,
-            label: `${c.partnerName} — ${c.name} (${c.email})`,
-          }))}
-          value={viewAsEmail}
-          resetHref="/"
-        />
-      )}
 
       {!isPartner && <PartnerFilter clients={clientOptions} value={params.client} resetHref="/" />}
 

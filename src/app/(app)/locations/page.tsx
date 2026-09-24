@@ -1,6 +1,7 @@
-import { getAllLocations, getPartnerLocationContactByEmail, getPartnerLocationContacts } from "@/lib/airtable/queries";
+import { getAllLocations } from "@/lib/airtable/queries";
 import { isRelocationPending, isTerminationPending } from "@/lib/airtable/mappers";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
 import { LocationFilters } from "@/components/locations/LocationFilters";
 import { LocationsTable } from "@/components/locations/LocationsTable";
 import { StatCard } from "@/components/ui/StatCard";
@@ -15,27 +16,11 @@ export default async function LocationsPage({
     courant?: string;
     q?: string;
     all?: string;
-    viewAs?: string;
   }>;
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const isInterne = session?.role === "interne";
-
-  let isPartner = session?.role === "partenaire_location";
-  let partnerId = session?.partnerId;
-  let viewAsEmail: string | undefined;
-
-  if (isInterne && params.viewAs) {
-    const contact = await getPartnerLocationContactByEmail(params.viewAs);
-    if (contact) {
-      isPartner = true;
-      partnerId = contact.partnerId;
-      viewAsEmail = contact.email;
-    }
-  }
-
-  const partnerContacts = isInterne ? await getPartnerLocationContacts() : [];
+  const { isPartner, partnerId } = await getViewAsContext(session);
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
 
@@ -109,13 +94,8 @@ export default async function LocationsPage({
         clients={clientOptions}
         cities={cities}
         currentTypes={currentTypes}
-        values={{ ...params, viewAs: viewAsEmail }}
+        values={params}
         showClientFilter={!isPartner}
-        partnerContacts={
-          isInterne
-            ? partnerContacts.map((c) => ({ value: c.email, label: `${c.partnerName} — ${c.name} (${c.email})` }))
-            : undefined
-        }
       />
 
       <LocationsTable locations={filtered} linkable={!isPartner} />

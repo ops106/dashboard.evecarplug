@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllLocations, getPartnerLocationContactByEmail, getPartnerLocationContacts } from "@/lib/airtable/queries";
+import { getAllLocations } from "@/lib/airtable/queries";
 import {
   isCancelled,
   isInstallationInProgress,
@@ -9,35 +9,20 @@ import {
 } from "@/lib/airtable/mappers";
 import { PendingRequestsTable } from "@/components/locations/PendingRequestsTable";
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
-import { ViewAsPartnerFilter } from "@/components/locations/ViewAsPartnerFilter";
 import { StatCard } from "@/components/ui/StatCard";
 import { ClockIcon, InboxIcon, StopOctagonIcon, WrenchIcon } from "@/components/ui/icons";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
 
 export default async function SuiviDemandesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; client?: string; viewAs?: string }>;
+  searchParams: Promise<{ tab?: string; client?: string }>;
 }) {
   const params = await searchParams;
   const showCancelled = params.tab === "annulees";
   const session = await getSessionUser();
-  const isInterne = session?.role === "interne";
-
-  let isPartner = session?.role === "partenaire_location";
-  let partnerId = session?.partnerId;
-  let viewAsEmail: string | undefined;
-
-  if (isInterne && params.viewAs) {
-    const contact = await getPartnerLocationContactByEmail(params.viewAs);
-    if (contact) {
-      isPartner = true;
-      partnerId = contact.partnerId;
-      viewAsEmail = contact.email;
-    }
-  }
-
-  const partnerContacts = isInterne ? await getPartnerLocationContacts() : [];
+  const { isPartner, partnerId } = await getViewAsContext(session);
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
   const notInstalled = allLocations.filter(isNotYetInstalled);
@@ -61,16 +46,6 @@ export default async function SuiviDemandesPage({
   const tabHref = (tab?: string) => {
     const qs = new URLSearchParams();
     if (params.client) qs.set("client", params.client);
-    if (viewAsEmail) qs.set("viewAs", viewAsEmail);
-    if (tab) qs.set("tab", tab);
-    const query = qs.toString();
-    return `/suivi-demandes${query ? `?${query}` : ""}`;
-  };
-
-  // Le lien "Réinitialiser" du sélecteur "Voir comme partenaire" doit
-  // justement retirer viewAs, contrairement à tabHref qui le préserve.
-  const viewAsResetHref = (tab?: string) => {
-    const qs = new URLSearchParams();
     if (tab) qs.set("tab", tab);
     const query = qs.toString();
     return `/suivi-demandes${query ? `?${query}` : ""}`;
@@ -82,18 +57,6 @@ export default async function SuiviDemandesPage({
         <h2 style={{ fontSize: 25 }}>Suivi des demandes</h2>
         <p className="mt-1 text-sm text-muted">Demandes pas encore installées, groupées par étape de vente.</p>
       </div>
-
-      {isInterne && (
-        <ViewAsPartnerFilter
-          contacts={partnerContacts.map((c) => ({
-            value: c.email,
-            label: `${c.partnerName} — ${c.name} (${c.email})`,
-          }))}
-          value={viewAsEmail}
-          resetHref={viewAsResetHref(showCancelled ? "annulees" : undefined)}
-          extraParams={showCancelled ? { tab: "annulees" } : undefined}
-        />
-      )}
 
       {!isPartner && (
         <PartnerFilter

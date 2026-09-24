@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logoutAction } from "@/app/login/logout-action";
+import { setViewAsPartnerAction } from "@/lib/view-as-actions";
 
 type NavLink = { href: string; label: string; hint?: string; interneOnly?: boolean };
 
@@ -30,7 +31,15 @@ const NAV_GROUPS: { label?: string; links: NavLink[] }[] = [
   },
 ];
 
-export function Nav({ role }: { role?: "interne" | "partenaire_location" }) {
+export function Nav({
+  role,
+  viewAsEmail,
+  partnerContacts = [],
+}: {
+  role?: "interne" | "partenaire_location";
+  viewAsEmail?: string;
+  partnerContacts?: { value: string; label: string }[];
+}) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -66,6 +75,31 @@ export function Nav({ role }: { role?: "interne" | "partenaire_location" }) {
             <Image src="/evecarplug-logo.svg" alt="EVE CAR PLUG" width={110} height={49} priority />
           </Link>
         </div>
+
+        {role === "interne" && partnerContacts.length > 0 && (
+          <form action={setViewAsPartnerAction} style={{ padding: "0 20px 16px" }}>
+            <label htmlFor="viewAs" className="nav-section-label" style={{ display: "block", marginBottom: 6 }}>
+              Voir comme partenaire
+            </label>
+            <select
+              key={viewAsEmail ?? "none"}
+              id="viewAs"
+              name="viewAs"
+              defaultValue={viewAsEmail ?? ""}
+              onChange={(e) => e.currentTarget.form?.requestSubmit()}
+              className="input"
+              style={{ minHeight: 34, fontSize: 13, width: "100%" }}
+            >
+              <option value="">— Vue interne —</option>
+              {partnerContacts.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </form>
+        )}
+
         <nav className="flex flex-col" style={{ padding: "0 12px", flex: 1, gap: 20 }}>
           {groups.map((group) => (
             <div key={group.label ?? group.links[0].href} className="flex flex-col gap-1">
