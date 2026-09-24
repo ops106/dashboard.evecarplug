@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth";
 
 export const config = {
-  matcher: ["/((?!login|_next/static|_next/image|favicon.ico|evecarplug-logo.svg|evecarplug-logo-light.svg).*)"],
+  matcher: [
+    "/((?!login|_next/static|_next/image|favicon.ico|icon.svg|evecarplug-logo.svg|evecarplug-logo-light.svg).*)",
+  ],
 };
 
 export async function proxy(request: NextRequest) {
