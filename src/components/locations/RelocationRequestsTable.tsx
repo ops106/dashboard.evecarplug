@@ -86,7 +86,7 @@ export function RelocationRequestsTable({
                         )}
                         {canRefuseRelocation(location.relocation.status) && (
                           <form action={refuseRelocationAction.bind(null, location.id)}>
-                            <button type="submit" className="btn btn-ghost btn-sm">
+                            <button type="submit" className="btn btn-danger btn-sm">
                               Refuser
                             </button>
                           </form>

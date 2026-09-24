@@ -86,7 +86,7 @@ export function TerminationRequestsTable({
                         )}
                         {canRefuseTermination(location.termination.status) && (
                           <form action={refuseTerminationAction.bind(null, location.id)}>
-                            <button type="submit" className="btn btn-ghost btn-sm">
+                            <button type="submit" className="btn btn-danger btn-sm">
                               Refuser
                             </button>
                           </form>

@@ -13,7 +13,7 @@ export function RefuseExternalRequestButton({ locationId }: { locationId: string
 
   return (
     <>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={open}>
+      <button type="button" className="btn btn-danger btn-sm" onClick={open}>
         Refuser
       </button>
       <dialog ref={dialogRef} className="dialog" aria-labelledby={titleId} onClick={closeDialogOnBackdropClick}>
