@@ -25,6 +25,7 @@ export async function validateQuoteAction(id: string) {
   await updateLocation(id, {
     "Statut devis": QUOTE_STATUS_VALIDE,
     "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_VALIDE,
+    "Date de validation du devis": new Date().toISOString().slice(0, 10),
   });
   await logUsage({ action: "Valider devis", feature: "Devis", actor: session, detail: location.clientName });
   await notifyRequestDecision(location, {

@@ -78,6 +78,7 @@ export const DEMANDE_FIELDS = {
   lienDevis: "Lien du devis",
   raisonRefusDevis: "Raison refus devis",
   montantDevisEntreprise: "Montant du devis entreprise",
+  dateValidationDevis: "Date de validation du devis",
 } as const;
 
 export const PARTENAIRE_FIELDS = {

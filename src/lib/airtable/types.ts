@@ -61,6 +61,7 @@ export interface DemandeFields {
   "Lien du devis"?: string;
   "Raison refus devis"?: string;
   "Montant du devis entreprise"?: number;
+  "Date de validation du devis"?: string;
   // Lookup (tableau, meme pour un lien simple) sur le champ Email de la
   // table Commerciaux via le champ "Commercial" — permet d'alerter le
   // commercial en charge de la demande dans les webhooks Make.

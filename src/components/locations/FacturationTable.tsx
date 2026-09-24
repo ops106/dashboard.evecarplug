@@ -1,6 +1,7 @@
 import type { Location } from "@/lib/airtable/mappers";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ViewQuoteButton } from "@/components/locations/ViewQuoteButton";
+import { formatDate } from "@/lib/format";
 
 // Ces demandes appartiennent au pipeline "Facturation entreprise", distinct
 // de celui des locations (voir getAllFacturationRequests) : pas de page
@@ -12,7 +13,7 @@ export function FacturationTable({ locations }: { locations: Location[] }) {
 
   return (
     <div className="card overflow-x-auto p-0">
-      <table className="table min-w-[780px]">
+      <table className="table min-w-[880px]">
         <thead>
           <tr>
             <th>Société</th>
@@ -20,6 +21,7 @@ export function FacturationTable({ locations }: { locations: Location[] }) {
             <th>Email</th>
             <th>Téléphone</th>
             <th>Montant HT</th>
+            <th>Date d&apos;acceptation</th>
             <th style={{ textAlign: "right" }}>Actions</th>
           </tr>
         </thead>
@@ -31,6 +33,7 @@ export function FacturationTable({ locations }: { locations: Location[] }) {
               <td>{location.email || "—"}</td>
               <td>{location.phone || "—"}</td>
               <td>{location.quoteAmount != null ? `${location.quoteAmount.toLocaleString("fr-FR")} €` : "—"}</td>
+              <td>{formatDate(location.quoteValidatedDate)}</td>
               <td className="whitespace-nowrap">
                 <div className="flex justify-end">
                   <ViewQuoteButton locationId={location.id} quoteLink={location.quoteLink} />
