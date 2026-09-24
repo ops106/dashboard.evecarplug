@@ -14,7 +14,7 @@ export function ValidateQuoteButton({ locationId }: { locationId: string }) {
   return (
     <>
       <button type="button" className="btn btn-secondary btn-sm" onClick={open}>
-        Valider
+        Valider les travaux
       </button>
       <dialog ref={dialogRef} className="dialog" aria-labelledby={titleId} onClick={closeDialogOnBackdropClick}>
         <div className="dialog-body">
@@ -28,7 +28,7 @@ export function ValidateQuoteButton({ locationId }: { locationId: string }) {
               Annuler
             </button>
             <button type="button" className="btn btn-primary" disabled={pending} onClick={handleConfirm}>
-              {pending ? "Envoi..." : "Valider"}
+              {pending ? "Envoi..." : "Valider les travaux"}
             </button>
           </div>
         </div>
