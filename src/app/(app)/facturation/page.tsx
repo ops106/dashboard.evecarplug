@@ -5,13 +5,14 @@ import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { FacturationTable } from "@/components/locations/FacturationTable";
 import { PendingFarodConnectionTable } from "@/components/locations/PendingFarodConnectionTable";
+import { PartnerFilter } from "@/components/locations/PartnerFilter";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function FacturationPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; client?: string }>;
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
@@ -26,8 +27,18 @@ export default async function FacturationPage({
   // Chantiers installés sans date de 1ère connexion Farod — réservé au
   // persona interne, jamais visible en mode "voir comme partenaire".
   const allLocations = isPartner ? [] : await getAllLocations();
+
+  const clientOptions = Array.from(
+    new Map(allLocations.filter((l) => l.clientId).map((l) => [l.clientId as string, l.clientName])),
+  )
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
   const pendingFarodConnection = allLocations.filter(
-    (l) => l.stage === ETAPE_INSTALLATION_TERMINEE && !l.firstFarodConnectionDate,
+    (l) =>
+      l.stage === ETAPE_INSTALLATION_TERMINEE &&
+      !l.firstFarodConnectionDate &&
+      (!params.client || l.clientId === params.client),
   );
 
   // Correction manuelle : retrouver un chantier qui n'est pas encore au
@@ -99,6 +110,7 @@ export default async function FacturationPage({
             <h4>Installations terminées sans 1ère connexion Farod</h4>
             <span className="tag tag-accent">{pendingFarodConnection.length}</span>
           </div>
+          <PartnerFilter clients={clientOptions} value={params.client} resetHref="/facturation" />
           <PendingFarodConnectionTable locations={pendingFarodConnection} />
         </div>
       )}
