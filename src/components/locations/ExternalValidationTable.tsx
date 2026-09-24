@@ -1,7 +1,10 @@
 import Link from "next/link";
 import type { Location } from "@/lib/airtable/mappers";
+import { PARTENAIRE_AUDIKA_RECORD_ID, PARTENAIRE_SOFIP_RECORD_ID } from "@/lib/airtable/fields";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ValidateExternalRequestButton } from "@/components/locations/ValidateExternalRequestButton";
+import { ValidateEngagementDurationButton } from "@/components/locations/ValidateEngagementDurationButton";
+import { ValidateExternalRequestSimpleButton } from "@/components/locations/ValidateExternalRequestSimpleButton";
 import { RefuseExternalRequestButton } from "@/components/locations/RefuseExternalRequestButton";
 
 export function ExternalValidationTable({
@@ -54,10 +57,16 @@ export function ExternalValidationTable({
               <td>{location.phone || "—"}</td>
               <td className="whitespace-nowrap">
                 <div className="flex gap-2 justify-end">
-                  <ValidateExternalRequestButton
-                    locationId={location.id}
-                    availableEntities={location.clientId ? (entitiesByClient[location.clientId] ?? []) : []}
-                  />
+                  {location.clientId === PARTENAIRE_AUDIKA_RECORD_ID ? (
+                    <ValidateExternalRequestButton
+                      locationId={location.id}
+                      availableEntities={location.clientId ? (entitiesByClient[location.clientId] ?? []) : []}
+                    />
+                  ) : location.clientId === PARTENAIRE_SOFIP_RECORD_ID ? (
+                    <ValidateEngagementDurationButton locationId={location.id} />
+                  ) : (
+                    <ValidateExternalRequestSimpleButton locationId={location.id} />
+                  )}
                   <RefuseExternalRequestButton locationId={location.id} />
                 </div>
               </td>

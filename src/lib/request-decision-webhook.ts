@@ -20,6 +20,7 @@ export interface RequestDecisionWebhookPayload {
   salesRepEmail?: string;
   decision: "Validé" | "Refusé";
   partnerEntity?: string;
+  engagementDuration?: string;
   quoteAmount?: number;
   quoteLink?: string;
   refusalReason?: string;
@@ -44,6 +45,7 @@ export async function notifyRequestDecision(
     decision: "Validé" | "Refusé";
     actor: SessionUser | null;
     partnerEntity?: string;
+    engagementDuration?: string;
     quoteAmount?: number;
     quoteLink?: string;
     refusalReason?: string;
@@ -66,6 +68,7 @@ export async function notifyRequestDecision(
     salesRepEmail: location.salesRepEmail,
     decision: params.decision,
     partnerEntity: params.partnerEntity,
+    engagementDuration: params.engagementDuration,
     quoteAmount: params.quoteAmount,
     quoteLink: params.quoteLink,
     refusalReason: params.refusalReason,

@@ -74,6 +74,7 @@ export interface Location {
   quoteRefusalReason?: string;
   quoteAmount?: number;
   quoteValidatedDate?: string;
+  engagementDuration?: string;
   salesRepEmail?: string;
 }
 
@@ -236,6 +237,7 @@ export function mapDemandeRecord(
     quoteRefusalReason: f["Raison refus devis"],
     quoteAmount: f["Montant du devis entreprise"],
     quoteValidatedDate: f["Date de validation du devis"],
+    engagementDuration: f["Durée d'engagement"],
     salesRepEmail: f["Email (from Commercial)"]?.[0],
   };
 }

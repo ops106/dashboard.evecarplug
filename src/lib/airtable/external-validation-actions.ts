@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { EXTERNAL_VALIDATION_REFUSE, EXTERNAL_VALIDATION_VALIDE } from "./fields";
 import { getLocationById, updateLocation } from "./queries";
+import type { DemandeFields } from "./types";
 import { getSessionUser } from "@/lib/session";
 import { canAccessLocation } from "@/lib/authorize";
 import { logUsage } from "./usage-log";
@@ -41,6 +42,50 @@ export async function validateExternalRequestAction(id: string, entitePartenaire
     actor: session,
     partnerEntity: entitePartenaire,
   });
+  revalidateExternalValidationViews(id);
+}
+
+// Spécificité SOFIP : durée d'engagement (2 ou 3 ans) demandée au moment de
+// la validation, au lieu de l'entité partenaire (réservée à Audika).
+export async function validateExternalRequestWithDurationAction(id: string, dureeEngagement: string) {
+  const session = await getSessionUser();
+  const location = await getLocationById(id);
+  if (!location || !canAccessLocation(session, location)) return;
+
+  await updateLocation(id, {
+    "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_VALIDE,
+    "Durée d'engagement": dureeEngagement as DemandeFields["Durée d'engagement"],
+  });
+  await logUsage({
+    action: "Valider demande externe",
+    feature: "Validation externe",
+    actor: session,
+    detail: location.clientName,
+  });
+  await notifyRequestDecision(location, {
+    requestType: "validation_externe",
+    decision: "Validé",
+    actor: session,
+    engagementDuration: dureeEngagement,
+  });
+  revalidateExternalValidationViews(id);
+}
+
+// Tous les partenaires hors Audika/SOFIP : validation simple, aucun champ
+// supplémentaire.
+export async function validateExternalRequestSimpleAction(id: string) {
+  const session = await getSessionUser();
+  const location = await getLocationById(id);
+  if (!location || !canAccessLocation(session, location)) return;
+
+  await updateLocation(id, { "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_VALIDE });
+  await logUsage({
+    action: "Valider demande externe",
+    feature: "Validation externe",
+    actor: session,
+    detail: location.clientName,
+  });
+  await notifyRequestDecision(location, { requestType: "validation_externe", decision: "Validé", actor: session });
   revalidateExternalValidationViews(id);
 }
 

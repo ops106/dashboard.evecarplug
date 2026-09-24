@@ -79,6 +79,7 @@ export const DEMANDE_FIELDS = {
   raisonRefusDevis: "Raison refus devis",
   montantDevisEntreprise: "Montant du devis entreprise",
   dateValidationDevis: "Date de validation du devis",
+  dureeEngagement: "Durée d'engagement",
 } as const;
 
 export const PARTENAIRE_FIELDS = {
@@ -86,6 +87,18 @@ export const PARTENAIRE_FIELDS = {
   emailPrincipal: "Email principal",
   type: "Type",
 } as const;
+
+// Id des records Partenaire (table `Partenaire`) pour lesquels la popup de
+// validation externe (tableau de bord) affiche un champ specifique :
+// - Audika : selection d'une entite partenaire (plusieurs entites/marques).
+// - SOFIP : selection d'une duree d'engagement.
+// Tous les autres partenaires ont une validation simple, sans champ.
+export const PARTENAIRE_AUDIKA_RECORD_ID = "recOOLPjj2uVUTp8O";
+export const PARTENAIRE_SOFIP_RECORD_ID = "recdO5sSdKNO4wsHK";
+
+// Champ "Durée d'engagement" (singleSelect) : uniquement rempli pour SOFIP,
+// voir validateExternalRequestWithDurationAction.
+export const ENGAGEMENT_DURATION_CHOICES = ["2 ans", "3 ans"] as const;
 
 // La table Demande contient plusieurs pipelines commerciaux (TESLA, CELLNEX,
 // PROSPECTION, ...) ; seul celui-ci correspond a la location de bornes.
