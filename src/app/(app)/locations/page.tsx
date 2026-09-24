@@ -10,13 +10,7 @@ import { BoltIcon, MapPinIcon, StopOctagonIcon } from "@/components/ui/icons";
 export default async function LocationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    client?: string;
-    ville?: string;
-    courant?: string;
-    q?: string;
-    all?: string;
-  }>;
+  searchParams: Promise<{ q?: string }>;
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
@@ -24,43 +18,13 @@ export default async function LocationsPage({
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
 
-  const clientOptions = Array.from(
-    new Map(
-      allLocations
-        .filter((l) => l.clientId)
-        .map((l) => [l.clientId as string, l.clientName]),
-    ),
-  )
-    .map(([value, label]) => ({ value, label }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-
-  const cities = Array.from(
-    new Set(allLocations.map((l) => l.city).filter((v): v is string => Boolean(v))),
-  ).sort((a, b) => a.localeCompare(b));
-
-  const currentTypes: string[] = Array.from(
-    new Set(
-      allLocations
-        .map((l) => l.currentType)
-        .filter((v): v is NonNullable<typeof v> => Boolean(v)),
-    ),
-  ).sort();
-
-  const scoped = params.client && !isPartner ? allLocations.filter((l) => l.clientId === params.client) : allLocations;
-  // Même définition que le tableau par défaut (voir `filtered` plus bas) :
-  // actif et avec une date de 1ère connexion Farod renseignée.
-  const activeCount = scoped.filter((l) => l.isActive && l.firstFarodConnectionDate).length;
-  const relocatingCount = scoped.filter(isRelocationPending).length;
-  const terminatingCount = scoped.filter(isTerminationPending).length;
-
-  const showAll = params.all === "1";
+  const activeCount = allLocations.filter((l) => l.isActive && l.firstFarodConnectionDate).length;
+  const relocatingCount = allLocations.filter(isRelocationPending).length;
+  const terminatingCount = allLocations.filter(isTerminationPending).length;
 
   const filtered = allLocations.filter((l) => {
     if (!l.firstFarodConnectionDate) return false;
-    if (!showAll && !l.isActive) return false;
-    if (!isPartner && params.client && l.clientId !== params.client) return false;
-    if (params.ville && l.city !== params.ville) return false;
-    if (params.courant && l.currentType !== params.courant) return false;
+    if (!l.isActive) return false;
     if (params.q) {
       const q = params.q.toLowerCase();
       const haystack = [l.clientName, l.siteName, l.chargerSerial, l.city]
@@ -77,10 +41,8 @@ export default async function LocationsPage({
       <div className="mb-6">
         <h2 style={{ fontSize: 25 }}>Locations</h2>
         <p className="mt-1 text-sm text-muted">
-          {showAll
-            ? "Toutes les demandes, tous statuts confondus."
-            : "Locations actuellement en cours (bornes installées)."}{" "}
-          {filtered.length} résultat{filtered.length > 1 ? "s" : ""}.
+          Locations actuellement en cours (bornes installées). {filtered.length} résultat
+          {filtered.length > 1 ? "s" : ""}.
         </p>
       </div>
 
@@ -90,13 +52,7 @@ export default async function LocationsPage({
         <StatCard label="Résiliations en cours" value={terminatingCount} icon={<StopOctagonIcon />} />
       </div>
 
-      <LocationFilters
-        clients={clientOptions}
-        cities={cities}
-        currentTypes={currentTypes}
-        values={params}
-        showClientFilter={!isPartner}
-      />
+      <LocationFilters values={params} />
 
       <LocationsTable locations={filtered} linkable={!isPartner} />
     </div>
