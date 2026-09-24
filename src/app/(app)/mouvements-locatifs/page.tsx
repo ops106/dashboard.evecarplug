@@ -110,7 +110,7 @@ export default async function MouvementsLocatifsPage({
               <h4>Changements d&apos;adresse à traiter</h4>
               <span className="tag tag-accent">{pendingRelocations.length}</span>
             </div>
-            <RelocationRequestsTable locations={pendingRelocations} linkable={false} canManage={false} />
+            <RelocationRequestsTable locations={pendingRelocations} canManage={false} />
           </div>
 
           <div>
@@ -118,7 +118,7 @@ export default async function MouvementsLocatifsPage({
               <h4>Arrêts de location à traiter</h4>
               <span className="tag tag-accent">{pendingTerminations.length}</span>
             </div>
-            <TerminationRequestsTable locations={pendingTerminations} linkable={false} canManage={false} />
+            <TerminationRequestsTable locations={pendingTerminations} canManage={false} />
           </div>
         </>
       ) : (

@@ -2,7 +2,21 @@ import Link from "next/link";
 import type { Location } from "@/lib/airtable/mappers";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
-import { updateLocationAction } from "@/app/(app)/locations/[id]/actions";
+import { StatusProgressBar } from "@/components/ui/StatusProgressBar";
+import { RELOCATION_STATUS_ORDER, RELOCATION_STATUS_REFUSED, TERMINATION_STATUS_ORDER, TERMINATION_STATUS_REFUSED } from "@/lib/airtable/fields";
+import { updateEntitePartenaireAction, updateLocationAction } from "@/app/(app)/locations/[id]/actions";
+
+const PARTNER_ENTITY_OPTIONS = [
+  "Sogeca",
+  "Elivie",
+  "Asdia",
+  "Audika",
+  "E Horus",
+  "Audika Groupe",
+  "Santé & Cie",
+  "Alliance Soins",
+  "Urgence Med",
+];
 
 function Field({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -17,8 +31,22 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 // et la modale glissante (src/app/(app)/@modal/(.)locations/[id]/page.tsx) —
 // seul le lien "← Retour aux locations" reste hors de ce composant (absent
 // en modale, où la fermeture remplace ce rôle).
-export function LocationDetailForm({ location }: { location: Location }) {
+//
+// canEdit=false (persona partenaire) : vue épurée en lecture seule, sans le
+// jargon interne (statut CRM, étape de vente, centre de coût) — sauf
+// canEditEntity (Audika uniquement), qui autorise à renseigner sa propre
+// entité partenaire.
+export function LocationDetailForm({
+  location,
+  canEdit = true,
+  canEditEntity = false,
+}: {
+  location: Location;
+  canEdit?: boolean;
+  canEditEntity?: boolean;
+}) {
   const boundUpdate = updateLocationAction.bind(null, location.id);
+  const boundUpdateEntity = updateEntitePartenaireAction.bind(null, location.id);
 
   return (
     <div className="space-y-6">
@@ -48,6 +76,110 @@ export function LocationDetailForm({ location }: { location: Location }) {
         </dl>
       </Card>
 
+      {!canEdit && (
+        <div className="space-y-6">
+          <Card>
+            <h4 className="mb-4">Spécifications de la borne</h4>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="N° Borne" value={location.chargerSerial} />
+              <Field label="Modèle" value={location.model} />
+              <Field label="Puissance (kW)" value={location.power} />
+              <Field label="Type de courant" value={location.currentType} />
+              <Field label="Nb points de charge" value={location.chargePoints} />
+              <Field label="Nombre de bornes" value={location.chargerCount} />
+            </dl>
+          </Card>
+
+          <Card>
+            <h4 className="mb-4">Contact</h4>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Prénom" value={location.firstName} />
+              <Field label="Nom" value={location.lastName} />
+              <Field label="Téléphone" value={location.phone} />
+              <Field label="Email" value={location.email} />
+            </dl>
+          </Card>
+
+          <Card>
+            <h4 className="mb-4">Adresse</h4>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Adresse" value={location.address} />
+              <Field label="Code postal" value={location.postalCode} />
+              <Field label="Ville" value={location.city} />
+              <Field label="Adresse complète" value={location.fullAddress} />
+            </dl>
+          </Card>
+
+          <Card>
+            <h4 className="mb-4">Partenaire</h4>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {canEditEntity ? (
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-muted">Entité partenaire</dt>
+                  <form action={boundUpdateEntity} className="mt-0.5 flex items-center gap-2">
+                    <select name="entitePartenaire" defaultValue={location.partnerEntity ?? ""} className="input">
+                      <option value="">— Choisir —</option>
+                      {PARTNER_ENTITY_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="submit" className="btn btn-secondary btn-sm">
+                      Enregistrer
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <Field label="Entité partenaire" value={location.partnerEntity} />
+              )}
+              <Field label="Type de client" value={location.clientType} />
+            </dl>
+          </Card>
+
+          <Card>
+            <h4 className="mb-4">Chantier & connexion</h4>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Date de chantier" value={location.constructionDate} />
+              <Field label="Date de première connexion farod" value={location.firstFarodConnectionDate} />
+            </dl>
+          </Card>
+
+          <Card>
+            <h4 className="mb-1">Demande de changement d&apos;adresse</h4>
+            <p className="mb-4 text-xs text-muted flex items-center gap-2">
+              <StatusBadge value={location.relocation.status} />
+              <StatusProgressBar
+                order={RELOCATION_STATUS_ORDER}
+                refusedStatus={RELOCATION_STATUS_REFUSED}
+                status={location.relocation.status}
+              />
+            </p>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Nouvelle adresse" value={location.relocation.newAddress} />
+              <Field label="Nouveau code postal" value={location.relocation.newPostalCode} />
+              <Field label="Nouvelle ville" value={location.relocation.newCity} />
+            </dl>
+          </Card>
+
+          <Card>
+            <h4 className="mb-1">Demande d&apos;arrêt de location</h4>
+            <p className="mb-4 text-xs text-muted flex items-center gap-2">
+              <StatusBadge value={location.termination.status} />
+              <StatusProgressBar
+                order={TERMINATION_STATUS_ORDER}
+                refusedStatus={TERMINATION_STATUS_REFUSED}
+                status={location.termination.status}
+              />
+            </p>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Date de la demande" value={location.termination.requestDate} />
+            </dl>
+          </Card>
+        </div>
+      )}
+
+      {canEdit && (
       <form action={boundUpdate} className="space-y-6">
         <Card>
           <h4 className="mb-4">Spécifications de la borne</h4>
@@ -216,15 +348,11 @@ export function LocationDetailForm({ location }: { location: Location }) {
               <label>Entité partenaire</label>
               <select name="entitePartenaire" defaultValue={location.partnerEntity ?? ""} className="input">
                 <option value="">— Ne pas modifier —</option>
-                <option value="Sogeca">Sogeca</option>
-                <option value="Elivie">Elivie</option>
-                <option value="Asdia">Asdia</option>
-                <option value="Audika">Audika</option>
-                <option value="E Horus">E Horus</option>
-                <option value="Audika Groupe">Audika Groupe</option>
-                <option value="Santé & Cie">Santé & Cie</option>
-                <option value="Alliance Soins">Alliance Soins</option>
-                <option value="Urgence Med">Urgence Med</option>
+                {PARTNER_ENTITY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="field">
@@ -345,6 +473,7 @@ export function LocationDetailForm({ location }: { location: Location }) {
           Enregistrer les modifications
         </button>
       </form>
+      )}
     </div>
   );
 }

@@ -107,11 +107,7 @@ export default async function DashboardPage({
               <h4>En attente de validation par l&apos;entreprise</h4>
               <span className="tag tag-accent">{pendingExternalValidation.length}</span>
             </div>
-            <ExternalValidationTable
-              locations={pendingExternalValidation}
-              entitiesByClient={entitiesByClient}
-              linkable={false}
-            />
+            <ExternalValidationTable locations={pendingExternalValidation} entitiesByClient={entitiesByClient} />
           </div>
 
           <div>

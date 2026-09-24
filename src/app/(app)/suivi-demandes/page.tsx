@@ -96,7 +96,7 @@ export default async function SuiviDemandesPage({
         </Link>
       </div>
 
-      <PendingRequestsTable locations={displayed} linkable={!isPartner} />
+      <PendingRequestsTable locations={displayed} />
     </div>
   );
 }

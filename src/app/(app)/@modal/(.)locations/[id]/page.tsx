@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { getLocationById } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
+import { PARTENAIRE_AUDIKA_RECORD_ID } from "@/lib/airtable/fields";
 import { LocationDetailForm } from "@/components/locations/LocationDetailForm";
 import { SlideOver } from "@/components/ui/SlideOver";
 
@@ -17,14 +19,19 @@ export default async function LocationDetailModal({
   const { id } = await params;
 
   const session = await getSessionUser();
-  if (session?.role !== "interne") redirect("/locations");
+  const { isInterne, isPartner, partnerId } = await getViewAsContext(session);
+  if (!isInterne && !isPartner) redirect("/locations");
 
   const location = await getLocationById(id);
   if (!location) notFound();
+  if (isPartner && location.clientId !== partnerId) notFound();
+
+  const canEdit = isInterne && !isPartner;
+  const canEditEntity = isPartner && location.clientId === PARTENAIRE_AUDIKA_RECORD_ID;
 
   return (
     <SlideOver title="Fiche location">
-      <LocationDetailForm location={location} />
+      <LocationDetailForm location={location} canEdit={canEdit} canEditEntity={canEditEntity} />
     </SlideOver>
   );
 }

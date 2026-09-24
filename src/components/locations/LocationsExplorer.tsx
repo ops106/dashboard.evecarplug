@@ -109,7 +109,7 @@ export function LocationsExplorer({
         {filtered.length} résultat{filtered.length > 1 ? "s" : ""}.
       </p>
 
-      <LocationsTable locations={filtered} linkable={!isPartner} />
+      <LocationsTable locations={filtered} />
     </div>
   );
 }

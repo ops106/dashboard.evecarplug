@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { updateLocation } from "@/lib/airtable/queries";
+import { getLocationById, updateLocation } from "@/lib/airtable/queries";
 import type { DemandeFields } from "@/lib/airtable/types";
 import { getSessionUser } from "@/lib/session";
+import { getViewAsContext } from "@/lib/view-as";
+import { PARTENAIRE_AUDIKA_RECORD_ID } from "@/lib/airtable/fields";
 
 // Formulaire interne complet (specs, statut de vente, pipeline...) — jamais
 // accessible aux partenaires, quel que soit l'id ciblé.
@@ -117,6 +119,28 @@ export async function updateLocationAction(id: string, formData: FormData) {
   }
 
   await updateLocation(id, patch);
+
+  revalidatePath(`/locations/${id}`);
+  revalidatePath("/locations");
+  revalidatePath("/");
+}
+
+// Seule modification autorisee pour un partenaire (fiche en lecture seule
+// sinon) : Audika a besoin de renseigner lui-meme son entite (multi-centres),
+// contrairement aux autres partenaires. Revalide les memes chemins que
+// updateLocationAction pour que le changement soit visible partout.
+export async function updateEntitePartenaireAction(id: string, formData: FormData) {
+  const session = await getSessionUser();
+  const { isPartner, partnerId } = await getViewAsContext(session);
+  if (!isPartner || partnerId !== PARTENAIRE_AUDIKA_RECORD_ID) return;
+
+  const location = await getLocationById(id);
+  if (!location || location.clientId !== partnerId) return;
+
+  const entitePartenaire = formData.get("entitePartenaire");
+  if (typeof entitePartenaire !== "string" || !entitePartenaire) return;
+
+  await updateLocation(id, { "Entité partenaire": entitePartenaire as DemandeFields["Entité partenaire"] });
 
   revalidatePath(`/locations/${id}`);
   revalidatePath("/locations");
