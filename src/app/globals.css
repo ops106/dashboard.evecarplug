@@ -30,8 +30,8 @@
   --radius-pill: 20px;
   --radius-sm: 8px;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.05);
 
   /* Reservees a l'ecran de connexion (panneau sombre) — voir "— login —"
      plus bas. Pas utilisees ailleurs dans l'app, qui reste claire partout. */
@@ -75,7 +75,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 /* — cards — */
 .card {
   background: var(--color-surface);
-  border: 1.5px solid var(--color-accent);
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
 }
@@ -85,7 +85,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .stat-card-link:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.stat-card-link:hover .card { border-color: var(--color-accent-dark); }
+.stat-card-link:hover .card { border-color: var(--color-accent); }
 
 /* — buttons — */
 .btn {
@@ -96,13 +96,13 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   padding: 10px 22px;
   border-radius: var(--radius-pill);
   border: 1.5px solid transparent;
-  transition: opacity 0.15s ease, background-color 0.15s ease;
+  transition: opacity 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn-primary { background: var(--color-dark); border-color: var(--color-accent); color: #fff; }
-.btn-primary:hover { background: #000; }
+.btn-primary:hover { background: #000; transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 .btn-secondary { background: transparent; border-color: var(--color-accent); color: var(--color-accent); }
-.btn-secondary:hover { background: var(--color-accent-light); }
+.btn-secondary:hover { background: var(--color-accent-light); transform: translateY(-1px); }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--color-accent); padding-inline: 10px; }
 .btn-ghost:hover { background: var(--color-accent-light); }
 .btn-danger { background: transparent; border-color: var(--color-danger); color: var(--color-danger); }
@@ -232,15 +232,22 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 }
 .nav-sidebar-link {
   display: block;
-  padding: 10px 12px;
+  padding: 10px 12px 10px 9px;
+  border-left: 3px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--color-dark);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .nav-sidebar-link:hover { background: var(--color-accent-light); color: var(--color-accent); }
-.nav-sidebar-link[aria-current="page"] { background: var(--color-accent-light); color: var(--color-accent); font-weight: 700; }
+.nav-sidebar-link[aria-current="page"] {
+  background: var(--color-accent-light);
+  border-left-color: var(--color-accent);
+  color: var(--color-accent);
+  font-weight: 700;
+}
 .nav-sidebar-hint {
   display: block;
   padding: 0 12px;
@@ -252,9 +259,9 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 /* — tables — */
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .table th {
-  text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
   color: rgba(26, 26, 26, 0.5);
-  padding: 12px; border-bottom: 1.5px solid var(--color-divider);
+  padding: 12px; border-bottom: 1px solid var(--color-divider);
 }
 .table td {
   padding: 12px;
@@ -307,7 +314,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 .kanban-cards { display: flex; flex-direction: column; gap: 10px; min-height: 8px; }
 .kanban-card {
   background: var(--color-surface);
-  border: 1.5px solid var(--color-divider);
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-sm);
   padding: 12px;
   display: flex;
@@ -315,7 +322,9 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   gap: 6px;
   box-shadow: var(--shadow-sm);
   cursor: grab;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
+.kanban-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .kanban-card:active { cursor: grabbing; }
 .kanban-card-title { font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--color-dark); text-decoration: none; }
 .kanban-card-title:hover { text-decoration: underline; }
@@ -328,13 +337,20 @@ dialog.dialog {
   position: fixed;
   inset: 0;
   margin: auto;
-  border: 1.5px solid var(--color-accent);
+  border: 1px solid var(--color-divider);
   border-radius: var(--radius-card);
   padding: 0;
   box-shadow: var(--shadow-md);
   max-width: 420px;
   width: 90vw;
   color: var(--color-text);
+  overflow: hidden;
+}
+dialog.dialog::before {
+  content: "";
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-dark));
 }
 dialog.dialog::backdrop {
   background: rgba(26, 26, 26, 0.45);
