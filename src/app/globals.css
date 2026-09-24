@@ -28,6 +28,7 @@
 
   --radius-card: 16px;
   --radius-pill: 20px;
+  --radius-btn: 12px;
   --radius-sm: 8px;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -96,7 +97,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   font-family: var(--font-heading); font-weight: 600;
   font-size: 14px; line-height: 1.2;
   padding: 10px 22px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-btn);
   border: 1.5px solid transparent;
   transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease,
     box-shadow 0.15s ease;
@@ -134,8 +135,9 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 .btn-primary {
   --btn-angle: 0deg;
   border-width: 2px;
+  border-radius: var(--radius-pill);
   background:
-    linear-gradient(180deg, #16302b, var(--color-dark) 55%, #000) padding-box,
+    linear-gradient(135deg, var(--color-accent-dark), #0a1f1c 55%, #000) padding-box,
     conic-gradient(from var(--btn-angle), var(--color-accent-dark), var(--color-teal-bright), var(--color-accent), var(--color-accent-dark)) border-box;
   color: #fff;
   box-shadow:
@@ -159,15 +161,19 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   .btn-primary:hover { animation: none; }
 }
 
+/* Remplissages "tonaux" (fond teinte + texte colore, pas de contour) plutot
+   que des boutons a bordure pleine — plus doux, plus actuel. Le contour
+   n'apparait qu'au survol, comme un signal d'intention plutot qu'un cadre
+   permanent. */
 .btn-secondary {
-  background: var(--color-surface);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  background: var(--color-accent-light);
+  border-color: transparent;
+  color: var(--color-accent-dark);
   box-shadow: var(--shadow-sm);
 }
 .btn-secondary:hover {
-  background: var(--color-accent-light);
-  border-color: var(--color-accent-dark);
+  background: color-mix(in srgb, var(--color-accent) 20%, var(--color-accent-light));
+  border-color: var(--color-accent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -177,8 +183,18 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 .btn-ghost:hover { background: var(--color-accent-light); }
 .btn-ghost:active { background: var(--color-accent-light); opacity: 0.8; }
 
-.btn-danger { background: var(--color-surface); border-color: var(--color-danger); color: var(--color-danger); box-shadow: var(--shadow-sm); }
-.btn-danger:hover { background: var(--color-danger-bg); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-danger {
+  background: var(--color-danger-bg);
+  border-color: transparent;
+  color: var(--color-danger);
+  box-shadow: var(--shadow-sm);
+}
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--color-danger) 16%, var(--color-danger-bg));
+  border-color: var(--color-danger);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
 .btn-danger:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
 
 .btn-danger-solid {
@@ -196,6 +212,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
    les règles ci-dessus pour gagner sur le padding par défaut. */
 .btn-wide { width: 210px; padding: 6px 8px; text-align: center; }
 .btn-sm { padding: 6px 14px; }
+.btn-icon { padding: 8px; border-radius: 999px; aspect-ratio: 1; }
 
 /* — forms — */
 .field > label {

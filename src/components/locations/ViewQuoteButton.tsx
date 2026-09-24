@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { closeDialogOnBackdropClick } from "@/lib/useDialogAction";
+import { EyeIcon } from "@/components/ui/icons";
 
 export function ViewQuoteButton({ locationId, quoteLink }: { locationId: string; quoteLink?: string }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -9,8 +10,14 @@ export function ViewQuoteButton({ locationId, quoteLink }: { locationId: string;
 
   return (
     <>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={() => dialogRef.current?.showModal()}>
-        Voir le devis
+      <button
+        type="button"
+        className="btn btn-secondary btn-icon"
+        onClick={() => dialogRef.current?.showModal()}
+        aria-label="Voir le devis"
+        title="Voir le devis"
+      >
+        <EyeIcon />
       </button>
       <dialog
         ref={dialogRef}
