@@ -16,6 +16,7 @@ export function MovementHistoryTable({ entries }: { entries: MovementLogRecord[]
             <th>Date</th>
             <th>Type</th>
             <th>Société</th>
+            <th>Client</th>
             <th>Évolution du statut</th>
             <th>Détail</th>
             <th>Effectué par</th>
@@ -29,6 +30,7 @@ export function MovementHistoryTable({ entries }: { entries: MovementLogRecord[]
                 <Badge tone={entry.type === "Résiliation" ? "danger" : "accent"}>{entry.type ?? "—"}</Badge>
               </td>
               <td className="font-medium">{entry.clientName}</td>
+              <td>{entry.contact || "—"}</td>
               <td>
                 {entry.oldStatus || "—"} → {entry.newStatus || "—"}
               </td>

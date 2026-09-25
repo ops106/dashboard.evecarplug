@@ -43,6 +43,18 @@ async function buildLieuxNameMap(): Promise<Map<string, string>> {
   return new Map(records.map((r) => [r.id, mapLieuxName(r)]));
 }
 
+// Nom du contact (Prenom + Nom) par id de Demande — utilise pour joindre le
+// client sur l'historique des mouvements locatifs, qui ne lie que la Demande
+// et le Partenaire (pas le contact) cote Airtable.
+async function buildDemandeContactMap(): Promise<Map<string, string>> {
+  const records = await getAllDemandeRecords();
+  return new Map(
+    records
+      .map((r): [string, string] => [r.id, [r.fields.Prénom, r.fields.Nom].filter(Boolean).join(" ")])
+      .filter(([, contact]) => contact),
+  );
+}
+
 async function getAllDemandeRecords() {
   return listAllRecords<DemandeFields>(TABLE_IDS.demande, {
     revalidate: 10,
@@ -289,6 +301,7 @@ export interface MovementLogRecord {
   summary: string;
   clientId?: string;
   clientName: string;
+  contact?: string;
   type?: HistoriqueMouvementFields["Type de mouvement"];
   action?: HistoriqueMouvementFields["Action"];
   oldStatus?: string;
@@ -303,21 +316,24 @@ export interface MovementLogRecord {
 // de record) comme getAllLocations — meme raison (ARRAYJOIN renvoie des noms,
 // pas des ids).
 export async function getMovementHistory(options?: { partnerId?: string }): Promise<MovementLogRecord[]> {
-  const [records, partenaireNames] = await Promise.all([
+  const [records, partenaireNames, demandeContacts] = await Promise.all([
     listAllRecords<HistoriqueMouvementFields>(TABLE_IDS.historiqueMouvements, {
       revalidate: 10,
       sort: [{ field: "Date", direction: "desc" }],
     }),
     buildPartenaireNameMap(),
+    buildDemandeContactMap(),
   ]);
 
   const entries = records.map((r): MovementLogRecord => {
     const clientId = r.fields.Partenaire?.[0];
+    const demandeId = r.fields.Demande?.[0];
     return {
       id: r.id,
       summary: r.fields["Résumé"] ?? "",
       clientId,
       clientName: (clientId && partenaireNames.get(clientId)) || "Société inconnue",
+      contact: demandeId ? demandeContacts.get(demandeId) : undefined,
       type: r.fields["Type de mouvement"],
       action: r.fields.Action,
       oldStatus: r.fields["Ancien statut"],
