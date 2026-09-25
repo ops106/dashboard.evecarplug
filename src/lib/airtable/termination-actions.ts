@@ -73,9 +73,8 @@ export async function refuseTerminationAction(id: string) {
   revalidateTerminationViews(id);
 }
 
-// Déplacement libre d'une carte du kanban vers une colonne quelconque
-// (glisser-déposer) — contrairement à acceptTerminationAction, pas limité à
-// l'étape suivante du pipeline.
+// Choix libre d'un statut via le menu déroulant de la liste — contrairement à
+// acceptTerminationAction, pas limité à l'étape suivante du pipeline.
 const TERMINATION_STATUSES: readonly string[] = [...TERMINATION_STATUS_ORDER, TERMINATION_STATUS_REFUSED];
 
 export async function setTerminationStatusAction(id: string, status: string) {
@@ -92,7 +91,7 @@ export async function setTerminationStatusAction(id: string, status: string) {
   });
   await logIfFinalTermination(location, status, session);
   await logUsage({
-    action: "Déplacer résiliation (kanban)",
+    action: "Changer statut résiliation (liste)",
     feature: "Résiliation",
     actor: session,
     detail: `${location.clientName} → ${status}`,

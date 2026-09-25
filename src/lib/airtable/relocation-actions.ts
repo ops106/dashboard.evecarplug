@@ -78,9 +78,8 @@ export async function refuseRelocationAction(id: string) {
   revalidateRelocationViews(id);
 }
 
-// Déplacement libre d'une carte du kanban vers une colonne quelconque
-// (glisser-déposer) — contrairement à acceptRelocationAction, pas limité à
-// l'étape suivante du pipeline.
+// Choix libre d'un statut via le menu déroulant de la liste — contrairement à
+// acceptRelocationAction, pas limité à l'étape suivante du pipeline.
 const RELOCATION_STATUSES: readonly string[] = [...RELOCATION_STATUS_ORDER, RELOCATION_STATUS_REFUSED];
 
 export async function setRelocationStatusAction(id: string, status: string) {
@@ -97,7 +96,7 @@ export async function setRelocationStatusAction(id: string, status: string) {
   });
   await logIfFinalRelocation(location, status, session);
   await logUsage({
-    action: "Déplacer déménagement (kanban)",
+    action: "Changer statut déménagement (liste)",
     feature: "Déménagement",
     actor: session,
     detail: `${location.clientName} → ${status}`,

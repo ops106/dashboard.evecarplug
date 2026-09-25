@@ -102,12 +102,13 @@ export async function getRecord<TFields>(
 export async function createRecord<TFields>(
   tableId: string,
   fields: Partial<TFields>,
+  options?: { typecast?: boolean },
 ): Promise<AirtableRecord<TFields>> {
   const url = `${AIRTABLE_API_BASE}/${BASE_ID}/${tableId}`;
   return airtableFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fields }),
+    body: JSON.stringify({ fields, typecast: options?.typecast }),
   });
 }
 

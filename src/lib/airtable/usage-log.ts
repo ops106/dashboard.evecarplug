@@ -30,7 +30,10 @@ export async function logUsage(input: LogUsageInput): Promise<void> {
   };
 
   try {
-    await createRecord<UsageLogFields>(TABLE_IDS.journalUtilisation, fields);
+    // typecast : autorise Airtable a ajouter une nouvelle option au champ
+    // singleSelect "Action" a la volee (ex. quand le libelle d'une action
+    // change suite a une refonte d'interface), plutot que de rejeter l'ecriture.
+    await createRecord<UsageLogFields>(TABLE_IDS.journalUtilisation, fields, { typecast: true });
   } catch (error) {
     console.error("logUsage a échoué (action métier non bloquée) :", error);
   }
