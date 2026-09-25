@@ -7,7 +7,7 @@ import { RefuseQuoteButton } from "@/components/locations/RefuseQuoteButton";
 
 // Ces demandes appartiennent a un autre pipeline Airtable que les locations
 // (voir getPendingQuoteRequests) : pas de page /locations/[id] a lier — le nom
-// du client renvoie donc vers sa fiche societe (/clients/[id]).
+// du client renvoie donc vers la fiche de cette demande (/facturation/[id]).
 export function QuoteValidationTable({ locations }: { locations: Location[] }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucun ajout supplémentaire en attente de validation." />;
@@ -31,13 +31,9 @@ export function QuoteValidationTable({ locations }: { locations: Location[] }) {
             <tr key={location.id}>
               <td className="font-medium">{location.clientName}</td>
               <td>
-                {location.clientId ? (
-                  <Link href={`/clients/${location.clientId}`} className="text-inherit no-underline hover:underline">
-                    {location.contact || "—"}
-                  </Link>
-                ) : (
-                  location.contact || "—"
-                )}
+                <Link href={`/facturation/${location.id}`} className="text-inherit no-underline hover:underline">
+                  {location.contact || "—"}
+                </Link>
               </td>
               <td>{location.email || "—"}</td>
               <td>{location.phone || "—"}</td>
