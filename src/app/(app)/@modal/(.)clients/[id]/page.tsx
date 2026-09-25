@@ -1,23 +1,25 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getClientById, getLocationsByClientId } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { ClientDetailContent } from "@/components/clients/ClientDetailContent";
+import { SlideOver } from "@/components/ui/SlideOver";
 
-export default async function ClientDetailPage({
+// Route interceptée : affichée en modale glissante lorsqu'on navigue vers
+// /clients/[id] depuis une page sous (app) (clic sur un nom de client dans
+// un tableau Facturation/Travaux supplémentaires). Un accès direct par URL
+// contourne l'interception et affiche la page complète normale (voir
+// ../../clients/[id]/page.tsx).
+export default async function ClientDetailModal({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   const session = await getSessionUser();
   const { isInterne, isPartner, partnerId } = await getViewAsContext(session);
   if (!isInterne && !isPartner) redirect("/");
-
-  const { id } = await params;
-  // Un partenaire ne peut consulter que sa propre fiche société (lien depuis
-  // les tableaux "Travaux supplémentaires"/Facturation, pipeline distinct des
-  // locations) — jamais celle d'un autre.
   if (isPartner && id !== partnerId) notFound();
 
   const client = await getClientById(id);
@@ -27,14 +29,8 @@ export default async function ClientDetailPage({
   const activeLocations = locations.filter((l) => l.isActive);
 
   return (
-    <div className="space-y-6">
-      <Link
-        href={isPartner ? "/" : "/clients"}
-        className="text-sm text-muted hover:text-[var(--color-accent)]"
-      >
-        {isPartner ? "← Retour au tableau de bord" : "← Retour aux clients"}
-      </Link>
+    <SlideOver title="Fiche société">
       <ClientDetailContent client={client} activeLocations={activeLocations} />
-    </div>
+    </SlideOver>
   );
 }
