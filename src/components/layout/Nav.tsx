@@ -38,10 +38,16 @@ const NAV_GROUPS: { label?: string; links: NavLink[] }[] = [
 
 export function Nav({
   role,
+  isPartner = false,
   viewAsEmail,
   partnerContacts = [],
 }: {
   role?: "interne" | "partenaire_location";
+  // Vrai a la fois pour une vraie session partenaire et pour un interne en
+  // train de "voir comme partenaire" — controle ce qui est masque dans la
+  // sidebar (role seul ne suffit pas : il reste "interne" pendant la
+  // simulation, voir (app)/layout.tsx).
+  isPartner?: boolean;
   viewAsEmail?: string;
   partnerContacts?: { value: string; label: string }[];
 }) {
@@ -60,7 +66,7 @@ export function Nav({
 
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
-    links: group.links.filter((link) => !link.interneOnly || role === "interne"),
+    links: group.links.filter((link) => !link.interneOnly || (role === "interne" && !isPartner)),
   })).filter((group) => group.links.length > 0);
 
   return (

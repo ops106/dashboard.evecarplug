@@ -23,11 +23,16 @@ export default async function AppLayout({
     cookies(),
   ]);
   const viewAsEmail = cookieStore.get(VIEW_AS_COOKIE_NAME)?.value;
+  // Un interne qui "voit comme partenaire" reste role === "interne" (voir
+  // getViewAsContext) — la sidebar doit pourtant masquer "Partie interne"
+  // comme le ferait une vraie session partenaire.
+  const isPartner = session?.role === "partenaire_location" || Boolean(viewAsEmail);
 
   return (
     <div className="flex flex-1">
       <Nav
         role={session?.role}
+        isPartner={isPartner}
         viewAsEmail={viewAsEmail}
         partnerContacts={partnerContacts.map((c) => ({
           value: c.email,
