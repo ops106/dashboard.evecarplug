@@ -1,9 +1,14 @@
 import { redirect } from "next/navigation";
-import { getUsageLog } from "@/lib/airtable/queries";
+import { getAllOpportunities, getUsageLog } from "@/lib/airtable/queries";
+import { ETAPE_INSTALLATION_TERMINEE, ETAPE_PROJET_ANNULE } from "@/lib/airtable/fields";
+import type { OpportunityRecord } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
 import { StatCard } from "@/components/ui/StatCard";
 import { BoltIcon, CheckBadgeIcon, ClockIcon, InboxIcon } from "@/components/ui/icons";
 import { StatusCountTable } from "@/components/kpi/StatusCountTable";
+import { OpenOpportunitiesTable } from "@/components/kpi/OpenOpportunitiesTable";
+import { WeeklyOpportunitiesChart } from "@/components/kpi/WeeklyOpportunitiesChart";
+import { KpiTabs } from "@/components/kpi/KpiTabs";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -25,6 +30,70 @@ function countBy(items: (string | undefined)[]): { label: string; count: number 
     .sort((a, b) => b.count - a.count);
 }
 
+// Lundi (UTC) de la semaine contenant `date` — sert de clé de regroupement,
+// plus simple que le numéro de semaine ISO pour un rapport "par semaine".
+function mondayOf(date: Date): Date {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day);
+  return d;
+}
+
+function weekKey(date: Date): string {
+  return mondayOf(date).toISOString().slice(0, 10);
+}
+
+function weekLabel(key: string): string {
+  const monday = new Date(`${key}T00:00:00Z`);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(sunday.getUTCDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "UTC" });
+  return `${fmt(monday)} – ${fmt(sunday)}`;
+}
+
+// Une ligne par semaine depuis le 1er janvier de l'année en cours jusqu'à
+// aujourd'hui (même les semaines sans aucune création, à 0).
+function weeksSinceStartOfYear(now: Date): string[] {
+  const start = mondayOf(new Date(Date.UTC(now.getFullYear(), 0, 1)));
+  const end = mondayOf(now);
+  const weeks: string[] = [];
+  for (const cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 7)) {
+    weeks.push(cursor.toISOString().slice(0, 10));
+  }
+  return weeks;
+}
+
+// "Ouverte" = étape de vente pas encore à un stade terminal (installée ou
+// projet annulé) — plus fiable que "Statut", pas toujours renseigné de façon
+// cohérente selon le pipeline.
+function isOpenOpportunity(o: OpportunityRecord): boolean {
+  return Boolean(o.stage) && o.stage !== ETAPE_INSTALLATION_TERMINEE && o.stage !== ETAPE_PROJET_ANNULE;
+}
+
+// Nombre d'opportunités ouvertes créées ces 2 dernières semaines / ces 2
+// derniers mois, groupées par `groupBy(o)` (société ou pipeline).
+function openCountsByGroup(
+  opportunities: OpportunityRecord[],
+  groupBy: (o: OpportunityRecord) => string,
+  since2Weeks: Date,
+  since2Months: Date,
+): { label: string; last2Weeks: number; last2Months: number }[] {
+  const counts = new Map<string, { last2Weeks: number; last2Months: number }>();
+  for (const o of opportunities) {
+    if (!isOpenOpportunity(o) || !o.createdAt) continue;
+    const createdAt = new Date(o.createdAt);
+    if (createdAt < since2Months) continue;
+    const label = groupBy(o);
+    const entry = counts.get(label) ?? { last2Weeks: 0, last2Months: 0 };
+    entry.last2Months += 1;
+    if (createdAt >= since2Weeks) entry.last2Weeks += 1;
+    counts.set(label, entry);
+  }
+  return Array.from(counts.entries())
+    .map(([label, c]) => ({ label, ...c }))
+    .sort((a, b) => b.last2Months - a.last2Months);
+}
+
 // Page reservee au persona interne : usage reel de l'outil (clics
 // enregistres via logUsage — voir usage-log.ts), pas des comptages de
 // statuts Airtable. Volume par fonctionnalite, utilisateurs actifs, et taux
@@ -33,9 +102,21 @@ export default async function IndicateursPage() {
   const session = await getSessionUser();
   if (session?.role !== "interne") redirect("/");
 
-  const log = await getUsageLog();
+  const [log, opportunities] = await Promise.all([getUsageLog(), getAllOpportunities()]);
 
   const last7Days = filterLast7Days(log);
+
+  const now = new Date();
+  const since2Weeks = new Date(now.getTime() - 14 * DAY_MS);
+  const since2Months = new Date(now.getTime() - 60 * DAY_MS);
+
+  const weeklyOpportunityRows = weeksSinceStartOfYear(now).map((key) => ({
+    label: weekLabel(key),
+    count: opportunities.filter((o) => o.createdAt && weekKey(new Date(o.createdAt)) === key).length,
+  }));
+
+  const openByPartner = openCountsByGroup(opportunities, (o) => o.partnerName, since2Weeks, since2Months);
+  const openByPipeline = openCountsByGroup(opportunities, (o) => o.pipelineName, since2Weeks, since2Months);
 
   const activeUsers = new Set(log.map((e) => e.actor)).size;
   const activeUsers7Days = new Set(last7Days.map((e) => e.actor)).size;
@@ -58,14 +139,11 @@ export default async function IndicateursPage() {
     { label: "Devis", ...pairCount("Valider devis", "Refuser devis") },
   ];
 
-  return (
+  const usageTab = (
     <div className="space-y-8">
-      <div>
-        <h2 style={{ fontSize: 25 }}>KPI utilisation</h2>
-        <p className="mt-1 text-sm text-muted">
-          Usage réel de l&apos;outil : actions effectuées, utilisateurs actifs, taux de traitement par fonctionnalité.
-        </p>
-      </div>
+      <p className="text-sm text-muted">
+        Usage réel de l&apos;outil : actions effectuées, utilisateurs actifs, taux de traitement par fonctionnalité.
+      </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Actions totales" value={log.length} icon={<InboxIcon />} />
@@ -120,6 +198,41 @@ export default async function IndicateursPage() {
           </table>
         </div>
       </div>
+    </div>
+  );
+
+  const opportunitiesTab = (
+    <div className="space-y-8">
+      <p className="text-sm text-muted">
+        Toutes les demandes de la base, tous pipelines confondus (pas seulement Location).
+      </p>
+
+      <WeeklyOpportunitiesChart rows={weeklyOpportunityRows} />
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <OpenOpportunitiesTable
+          title="Opportunités ouvertes par société"
+          sub="Créées récemment, étape de vente pas encore installée ni annulée."
+          labelHeader="Société"
+          rows={openByPartner}
+        />
+        <OpenOpportunitiesTable
+          title="Opportunités ouvertes par pipeline"
+          sub="Créées récemment, étape de vente pas encore installée ni annulée."
+          labelHeader="Pipeline"
+          rows={openByPipeline}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 style={{ fontSize: 25 }}>KPI</h2>
+      </div>
+
+      <KpiTabs usage={usageTab} opportunities={opportunitiesTab} />
     </div>
   );
 }
