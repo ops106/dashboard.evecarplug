@@ -1,8 +1,11 @@
+import { redirect } from "next/navigation";
 import { getAllLocations } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { LocationsExplorer } from "@/components/locations/LocationsExplorer";
 
+// Réservée aux personas Interne et Partenaire location — un Apporteur
+// d'affaires n'a accès qu'au Tableau de bord et au Suivi des demandes.
 export default async function LocationsPage({
   searchParams,
 }: {
@@ -10,7 +13,8 @@ export default async function LocationsPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
+  if (isApporteur) redirect("/");
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
   const activeLocations = allLocations.filter((l) => l.isActive && l.firstFarodConnectionDate);

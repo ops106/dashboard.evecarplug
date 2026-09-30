@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getAllFacturationRequests, getAllLocations } from "@/lib/airtable/queries";
 import { ETAPE_INSTALLATION_TERMINEE, QUOTE_STATUS_VALIDE } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
@@ -9,6 +10,8 @@ import { PartnerFilter } from "@/components/locations/PartnerFilter";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
+// Réservée aux personas Interne et Partenaire location — un Apporteur
+// d'affaires n'a accès qu'au Tableau de bord et au Suivi des demandes.
 export default async function FacturationPage({
   searchParams,
 }: {
@@ -16,7 +19,8 @@ export default async function FacturationPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
+  if (isApporteur) redirect("/");
 
   // "Ajouts supplémentaires" (montants de devis) : réservé au persona
   // partenaire — l'interne suit plutôt les connexions Farod ci-dessous.

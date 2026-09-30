@@ -1,8 +1,7 @@
-import { cookies } from "next/headers";
 import { Nav } from "@/components/layout/Nav";
 import { getSessionUser } from "@/lib/session";
-import { getPartnerLocationContacts } from "@/lib/airtable/queries";
-import { VIEW_AS_COOKIE_NAME } from "@/lib/view-as";
+import { getViewAsContacts } from "@/lib/airtable/queries";
+import { getViewAsContext } from "@/lib/view-as";
 
 // Donnees live depuis Airtable, derriere l'auth par email : pas de
 // generation statique au build, tout est rendu a la demande.
@@ -16,25 +15,18 @@ export default async function AppLayout({
   modal: React.ReactNode;
 }) {
   const session = await getSessionUser();
-  const isInterne = session?.role === "interne";
+  const { isInterne, isPartner, isApporteur, viewAsEmail } = await getViewAsContext(session);
 
-  const [partnerContacts, cookieStore] = await Promise.all([
-    isInterne ? getPartnerLocationContacts() : Promise.resolve([]),
-    cookies(),
-  ]);
-  const viewAsEmail = cookieStore.get(VIEW_AS_COOKIE_NAME)?.value;
-  // Un interne qui "voit comme partenaire" reste role === "interne" (voir
-  // getViewAsContext) — la sidebar doit pourtant masquer "Partie interne"
-  // comme le ferait une vraie session partenaire.
-  const isPartner = session?.role === "partenaire_location" || Boolean(viewAsEmail);
+  const viewAsContacts = isInterne ? await getViewAsContacts() : [];
 
   return (
     <div className="flex flex-1">
       <Nav
         role={session?.role}
         isPartner={isPartner}
+        isApporteur={isApporteur}
         viewAsEmail={viewAsEmail}
-        partnerContacts={partnerContacts.map((c) => ({
+        partnerContacts={viewAsContacts.map((c) => ({
           value: c.email,
           label: `${c.partnerName} — ${c.name} (${c.email})`,
         }))}

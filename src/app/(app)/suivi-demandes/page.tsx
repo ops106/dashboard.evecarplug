@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllLocations } from "@/lib/airtable/queries";
+import { getAllLocations, getApporteurPartners, getReferredLocations } from "@/lib/airtable/queries";
 import {
   isCancelled,
   isInstallationInProgress,
@@ -20,21 +20,69 @@ export default async function SuiviDemandesPage({
   searchParams: Promise<{ tab?: string; client?: string }>;
 }) {
   const params = await searchParams;
-  const showCancelled = params.tab === "annulees";
   const session = await getSessionUser();
-  const { isPartner, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
 
-  const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
+  // Persona Apporteur d'affaires (ou interne "voir comme" un apporteur) :
+  // tout son entonnoir (y compris installées et annulées, contrairement au
+  // reste de la page) — pas de page Locations pour lui pour voir les
+  // demandes installées ailleurs.
+  if (isApporteur) {
+    const referred = partnerId ? await getReferredLocations(partnerId) : [];
+    const newRequestsCount = referred.filter(isNewRequest).length;
+    const qualifyingCount = referred.filter(isQualifying).length;
+    const installationInProgressCount = referred.filter(isInstallationInProgress).length;
+    const cancelledCount = referred.filter(isCancelled).length;
+
+    return (
+      <div>
+        <div className="mb-6">
+          <h2 style={{ fontSize: 25 }}>Suivi des demandes</h2>
+          <p className="mt-1 text-sm text-muted">Vos demandes apportées, groupées par étape de vente.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard label="Nouvelles demandes" value={newRequestsCount} icon={<InboxIcon />} />
+          <StatCard label="En cours de qualification" value={qualifyingCount} icon={<ClockIcon />} />
+          <StatCard label="En cours d'installation" value={installationInProgressCount} icon={<WrenchIcon />} />
+          <StatCard label="Demandes annulées" value={cancelledCount} icon={<StopOctagonIcon />} />
+        </div>
+
+        <PendingRequestsTable locations={referred} linkable={false} />
+      </div>
+    );
+  }
+
+  const showCancelled = params.tab === "annulees";
+
+  // Le filtre Société inclut aussi les apporteurs d'affaires (societes hors
+  // pipeline Location) — leurs demandes sont recuperees a part si l'un d'eux
+  // est selectionne, via getReferredLocations (voir aussi getAllLocations,
+  // qui ne les renvoie jamais).
+  const apporteurPartners = isPartner ? [] : await getApporteurPartners();
+  const selectedApporteurId =
+    !isPartner && params.client && apporteurPartners.some((p) => p.id === params.client)
+      ? params.client
+      : undefined;
+
+  const [allLocations, referredForSelectedApporteur] = await Promise.all([
+    getAllLocations(isPartner ? { partnerId } : undefined),
+    selectedApporteurId ? getReferredLocations(selectedApporteurId) : Promise.resolve([]),
+  ]);
   const notInstalled = allLocations.filter(isNotYetInstalled);
 
   const clientOptions = Array.from(
     new Map(notInstalled.filter((l) => l.clientId).map((l) => [l.clientId as string, l.clientName])),
   )
     .map(([value, label]) => ({ value, label }))
+    .concat(apporteurPartners.map((p) => ({ value: p.id, label: p.name })))
     .sort((a, b) => a.label.localeCompare(b.label));
 
-  const filtered =
-    !isPartner && params.client ? notInstalled.filter((l) => l.clientId === params.client) : notInstalled;
+  const filtered = selectedApporteurId
+    ? referredForSelectedApporteur.filter(isNotYetInstalled)
+    : !isPartner && params.client
+      ? notInstalled.filter((l) => l.clientId === params.client)
+      : notInstalled;
   const active = filtered.filter((l) => !isCancelled(l));
   const cancelled = filtered.filter(isCancelled);
   const displayed = showCancelled ? cancelled : active;
@@ -96,7 +144,7 @@ export default async function SuiviDemandesPage({
         </Link>
       </div>
 
-      <PendingRequestsTable locations={displayed} />
+      <PendingRequestsTable locations={displayed} linkable={!selectedApporteurId} />
     </div>
   );
 }
