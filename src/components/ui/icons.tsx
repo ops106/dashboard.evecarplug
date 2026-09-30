@@ -89,3 +89,13 @@ export function WrenchIcon() {
     </IconBase>
   );
 }
+
+export function CoinsIcon() {
+  return (
+    <IconBase>
+      <ellipse cx="9" cy="7" rx="6" ry="3" />
+      <path d="M3 7v10c0 1.66 2.69 3 6 3s6-1.34 6-3V7" />
+      <path d="M15 10.5c2.9.33 5 1.5 5 2.9 0 1.66-2.69 3-6 3-1.06 0-2.06-.14-2.93-.38" />
+    </IconBase>
+  );
+}

@@ -373,6 +373,71 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
   font-size: 12px; letter-spacing: .03em; text-transform: uppercase; color: var(--color-dark);
   padding: 8px 16px !important; border-top: 1.5px solid var(--color-divider);
 }
+/* Separe visuellement les lignes d'une societe a l'autre dans une liste triee
+   par client mais sans en-tete de groupe (ex. Validations, Travaux
+   supplementaires sur le tableau de bord interne). */
+.client-group-start td { border-top: 1.5px solid var(--color-divider); }
+
+/* — funnel chart (tableau de bord apporteur d'affaires) — */
+.funnel-row { display: flex; align-items: center; gap: 12px; }
+.funnel-row + .funnel-row { margin-top: 10px; }
+.funnel-label { width: 220px; flex-shrink: 0; font-size: 13px; color: var(--color-dark); }
+.funnel-track { flex: 1; height: 18px; border-radius: 6px; background: var(--color-neutral-bg); overflow: hidden; }
+.funnel-fill { height: 100%; border-radius: 6px; background: var(--color-accent); transition: width 0.2s ease; }
+.funnel-fill-success { background: var(--color-success); }
+.funnel-fill-danger { background: var(--color-danger); }
+.funnel-count { width: 28px; flex-shrink: 0; text-align: right; font-weight: 700; font-size: 13px; }
+
+/* — monthly stacked chart (tableau de bord apporteur d'affaires) — */
+.monthly-chart { display: flex; align-items: flex-end; gap: 16px; min-height: 160px; padding-top: 8px; }
+.monthly-chart-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.monthly-chart-bar { flex: 1; width: 100%; max-width: 64px; display: flex; align-items: flex-end; }
+.monthly-chart-track {
+  width: 100%; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden;
+  min-height: 2px;
+}
+.monthly-seg-success { background: var(--color-success); }
+.monthly-seg-accent { background: var(--color-accent); }
+.monthly-seg-danger { background: var(--color-danger); }
+.monthly-chart-total { font-size: 12px; font-weight: 700; color: var(--color-dark); margin-top: 6px; }
+.monthly-chart-label { font-size: 11px; margin-top: 2px; }
+.monthly-chart-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 12px; color: var(--color-dark); }
+.monthly-chart-legend span { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.legend-dot-success { background: var(--color-success); }
+.legend-dot-accent { background: var(--color-accent); }
+.legend-dot-danger { background: var(--color-danger); }
+
+/* — commission hero (tableau de bord apporteur d'affaires) — */
+.commission-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  border-radius: var(--radius-card);
+  padding: 28px 32px;
+  background: linear-gradient(120deg, var(--color-accent), var(--color-accent-dark));
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.commission-hero-icon {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  opacity: 0.28;
+  transform: scale(2.4);
+  transform-origin: top right;
+}
+.commission-hero-item { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.commission-hero-divider { width: 1px; align-self: stretch; background: rgba(255, 255, 255, 0.25); }
+.commission-hero-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+.commission-hero-value { font-family: var(--font-heading); font-weight: 900; font-size: 38px; line-height: 1.15; }
+.commission-hero-hint { font-size: 12px; opacity: 0.8; }
+@media (max-width: 640px) {
+  .commission-hero { flex-direction: column; align-items: stretch; gap: 20px; }
+  .commission-hero-divider { width: 100%; height: 1px; }
+}
 
 /* — progress bar — */
 .progress-bar {

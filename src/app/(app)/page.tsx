@@ -1,13 +1,35 @@
-import { getAllLocations, getPendingQuoteRequests } from "@/lib/airtable/queries";
-import { isRelocationPending, isTerminationPending, needsExternalValidation } from "@/lib/airtable/mappers";
+import { getAllLocations, getPartnerCommissionInfo, getPendingQuoteRequests, getReferredLocations } from "@/lib/airtable/queries";
+import {
+  isCancelled,
+  isNotYetInstalled,
+  isRelocationPending,
+  isTerminationPending,
+  needsExternalValidation,
+} from "@/lib/airtable/mappers";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { StatCard } from "@/components/ui/StatCard";
-import { CheckBadgeIcon, InboxIcon, MapPinIcon, StopOctagonIcon } from "@/components/ui/icons";
+import {
+  BoltIcon,
+  CheckBadgeIcon,
+  ClockIcon,
+  CoinsIcon,
+  InboxIcon,
+  MapPinIcon,
+  StopOctagonIcon,
+} from "@/components/ui/icons";
 import { ExternalValidationTable } from "@/components/locations/ExternalValidationTable";
 import { QuoteValidationTable } from "@/components/locations/QuoteValidationTable";
 import { DashboardActionTabs } from "@/components/locations/DashboardActionTabs";
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
+import { StageFunnelChart } from "@/components/locations/StageFunnelChart";
+import { MonthlyOutcomeChart } from "@/components/locations/MonthlyOutcomeChart";
+
+// Persona interne : trie par société pour regrouper les demandes d'un même
+// client, plus facile à traiter que l'ordre d'arrivée brut d'Airtable.
+function sortByClient<T extends { clientName: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.clientName.localeCompare(b.clientName));
+}
 
 export default async function DashboardPage({
   searchParams,
@@ -16,7 +38,64 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
+
+  // Persona Apporteur d'affaires (ou interne "voir comme" un apporteur) : ses
+  // demandes vivent hors du pipeline Location (voir getReferredLocations) et
+  // n'ont ni changement d'adresse ni arrêt de location — juste un résumé de
+  // son propre entonnoir commercial.
+  if (isApporteur) {
+    const [referred, commissionInfo] = await Promise.all([
+      partnerId ? getReferredLocations(partnerId) : Promise.resolve([]),
+      partnerId ? getPartnerCommissionInfo(partnerId) : Promise.resolve(null),
+    ]);
+    const inProgress = referred.filter((l) => isNotYetInstalled(l) && !isCancelled(l)).length;
+    const installed = referred.length - referred.filter(isNotYetInstalled).length;
+    const lost = referred.filter(isCancelled).length;
+    const formatEuros = (amount: number) => `${amount.toLocaleString("fr-FR")} €`;
+
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 style={{ fontSize: 25 }}>Tableau de bord</h2>
+          <p className="mt-1 text-sm text-muted">Vue d&apos;ensemble de vos demandes apportées.</p>
+        </div>
+
+        {commissionInfo && (
+          <div className="commission-hero">
+            <div className="commission-hero-icon">
+              <CoinsIcon />
+            </div>
+            <div className="commission-hero-item">
+              <span className="commission-hero-label">Commission acquise</span>
+              <span className="commission-hero-value">{formatEuros(commissionInfo.commission)}</span>
+            </div>
+            <div className="commission-hero-divider" />
+            <div className="commission-hero-item">
+              <span className="commission-hero-label">Commission potentielle</span>
+              <span className="commission-hero-value">{formatEuros(commissionInfo.potentialCommission)}</span>
+              <span className="commission-hero-hint">Si les demandes en cours aboutissent</span>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard label="En cours" value={inProgress} icon={<ClockIcon />} />
+          <StatCard label="Installées" value={installed} icon={<BoltIcon />} />
+          <StatCard label="Perdues" value={lost} icon={<StopOctagonIcon />} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+          <div className="lg:col-span-2">
+            <StageFunnelChart locations={referred} />
+          </div>
+          <div className="lg:col-span-3">
+            <MonthlyOutcomeChart locations={referred} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [allLocations, allQuoteRequests] = await Promise.all([
     getAllLocations(isPartner ? { partnerId } : undefined),
@@ -92,11 +171,11 @@ export default async function DashboardPage({
 
       {!isPartner && (
         <DashboardActionTabs
-          relocations={pendingRelocations}
-          terminations={pendingTerminations}
-          externalValidation={pendingExternalValidation}
+          relocations={sortByClient(pendingRelocations)}
+          terminations={sortByClient(pendingTerminations)}
+          externalValidation={sortByClient(pendingExternalValidation)}
           entitiesByClient={entitiesByClient}
-          quoteValidation={pendingQuoteValidation}
+          quoteValidation={sortByClient(pendingQuoteValidation)}
         />
       )}
 
