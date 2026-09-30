@@ -3,6 +3,10 @@ export interface DemandeFields {
   Partenaire?: string[];
   Lieux?: string[];
   Pipeline?: string[];
+  // Horodatage automatique Airtable (jamais modifiable) — plus fiable que
+  // "Date de la demande" (champ metier, parfois vide ou saisi a la main)
+  // pour compter les opportunites reellement creees a une date donnee.
+  Created?: string;
   Nom?: string;
   Prénom?: string;
   Téléphone?: string;
@@ -73,6 +77,18 @@ export interface PartenaireFields {
   "Nom de l'entreprise"?: string;
   "Email principal"?: string;
   Type?: string;
+  // Champs formule (apporteurs d'affaires) : calcules par Airtable a partir
+  // du nombre de demandes installees/en cours et de "Commission / borne" —
+  // jamais recalcules cote app, juste lus tels quels.
+  "Commission"?: number;
+  "Potentiel de commission"?: number;
+}
+
+// Table "Pipeline" (11 lignes : ENTRANT, B2B AT HOME - LOCATION, etc.) — le
+// champ primaire "Pipeline" contient le nom, utilise pour resoudre le
+// Pipeline lie d'une Demande (voir getAllOpportunities).
+export interface PipelineFields {
+  Pipeline?: string;
 }
 
 export interface ContactFields {
@@ -83,6 +99,10 @@ export interface ContactFields {
   // ou "Partenaire" selon le pipeline du Partenaire lié.
   Persona?: string;
   Partenaire?: string[];
+  // Lookup du champ Type du Partenaire lié (ex. "Apporteur d'affaires",
+  // "Société contrat cadre") — distingue les sous-categories du bucket
+  // générique Persona = "Partenaire".
+  "Type de partenariat"?: string[];
   // Hash PBKDF2 (jamais le mot de passe en clair) — voir src/lib/password.ts.
   "Mot de passe (hash)"?: string;
 }

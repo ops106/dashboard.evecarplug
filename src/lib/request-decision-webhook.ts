@@ -24,7 +24,7 @@ export interface RequestDecisionWebhookPayload {
   quoteAmount?: number;
   quoteLink?: string;
   refusalReason?: string;
-  actor: { name: string; email: string; role: "interne" | "partenaire_location" } | null;
+  actor: { name: string; email: string; role: "interne" | "partenaire_location" | "apporteur_affaire" } | null;
   locationUrl?: string;
   timestamp: string;
 }

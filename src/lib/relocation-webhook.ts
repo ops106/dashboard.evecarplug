@@ -17,7 +17,7 @@ export interface RelocationWebhookPayload {
   newAddress?: string;
   newPostalCode?: string;
   newCity?: string;
-  actor: { name: string; email: string; role: "interne" | "partenaire_location" } | null;
+  actor: { name: string; email: string; role: "interne" | "partenaire_location" | "apporteur_affaire" } | null;
   locationUrl?: string;
   timestamp: string;
 }

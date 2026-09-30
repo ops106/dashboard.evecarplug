@@ -1,7 +1,9 @@
 import "server-only";
 import { getRecord, listAllRecords, updateRecord } from "./client";
 import {
+  PARTENAIRE_TYPE_APPORTEUR_AFFAIRES,
   PERSONA_INTERNE,
+  PERSONA_PARTENAIRE,
   PERSONA_PARTENAIRE_LOCATION,
   PIPELINE_FACTURATION_ENTREPRISE,
   PIPELINE_LOCATION,
@@ -23,6 +25,7 @@ import type {
   HistoriqueMouvementFields,
   LieuxFields,
   PartenaireFields,
+  PipelineFields,
   UsageLogFields,
 } from "./types";
 
@@ -41,6 +44,52 @@ async function buildPartenaireNameMap(): Promise<Map<string, string>> {
 async function buildLieuxNameMap(): Promise<Map<string, string>> {
   const records = await listAllRecords<LieuxFields>(TABLE_IDS.lieux, { revalidate: 30 });
   return new Map(records.map((r) => [r.id, mapLieuxName(r)]));
+}
+
+// 11 lignes fixes (ENTRANT, B2B AT HOME - LOCATION...) : cache plus long,
+// n'evolue quasiment jamais.
+async function buildPipelineNameMap(): Promise<Map<string, string>> {
+  const records = await listAllRecords<PipelineFields>(TABLE_IDS.pipeline, { revalidate: 300 });
+  return new Map(records.map((r) => [r.id, r.fields.Pipeline ?? "Pipeline inconnu"]));
+}
+
+export interface OpportunityRecord {
+  id: string;
+  createdAt?: string;
+  partnerId?: string;
+  partnerName: string;
+  pipelineId?: string;
+  pipelineName: string;
+  stage?: DemandeFields["Etape de vente"];
+}
+
+// Reporting KPI (persona interne) : TOUTES les demandes de la base, tous
+// pipelines confondus — contrairement a getAllLocations/getReferredLocations,
+// aucun filtre Pipeline ni Partenaire, puisque c'est justement ce qu'on
+// eclate ici (opportunites creees par semaine, ouvertes par partenaire ou par
+// pipeline). "createdAt" vient du champ Airtable natif "Created" (horodatage
+// automatique, jamais modifiable), plus fiable que "Date de la demande"
+// (champ metier parfois vide) pour compter des creations reelles.
+export async function getAllOpportunities(): Promise<OpportunityRecord[]> {
+  const [records, partenaireNames, pipelineNames] = await Promise.all([
+    listAllRecords<DemandeFields>(TABLE_IDS.demande, { revalidate: 60 }),
+    buildPartenaireNameMap(),
+    buildPipelineNameMap(),
+  ]);
+
+  return records.map((r): OpportunityRecord => {
+    const partnerId = r.fields.Partenaire?.[0];
+    const pipelineId = r.fields.Pipeline?.[0];
+    return {
+      id: r.id,
+      createdAt: r.fields.Created,
+      partnerId,
+      partnerName: (partnerId && partenaireNames.get(partnerId)) || CLIENT_INCONNU,
+      pipelineId,
+      pipelineName: (pipelineId && pipelineNames.get(pipelineId)) || "Pipeline inconnu",
+      stage: r.fields["Etape de vente"],
+    };
+  });
 }
 
 // Nom du contact (Prenom + Nom) par id de Demande — utilise pour joindre le
@@ -91,6 +140,24 @@ export async function getAllLocations(options?: { partnerId?: string }): Promise
     .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
     .filter((l) => l.clientName !== CLIENT_INCONNU);
   return options?.partnerId ? locations.filter((l) => l.clientId === options.partnerId) : locations;
+}
+
+// Toutes les demandes rattachees a un Partenaire donne, tous pipelines
+// confondus — utilise par la persona "Apporteur d'affaires", dont les
+// demandes vivent hors du pipeline Location (ex. "ENTRANT") et ne sont donc
+// jamais renvoyees par getAllLocations. Pas de filtre Pipeline cote Airtable
+// ici : on recupere toute la table (meme cache court que getAllDemandeRecords)
+// puis on filtre en JS par id de Partenaire, pour la meme raison que
+// getAllLocations (ARRAYJOIN renvoie des noms, pas des ids).
+export async function getReferredLocations(partnerId: string): Promise<Location[]> {
+  const [demandeRecords, partenaireNames, lieuxNames] = await Promise.all([
+    listAllRecords<DemandeFields>(TABLE_IDS.demande, { revalidate: 10 }),
+    buildPartenaireNameMap(),
+    buildLieuxNameMap(),
+  ]);
+  return demandeRecords
+    .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
+    .filter((l) => l.clientId === partnerId);
 }
 
 export async function getLocationById(id: string): Promise<Location | null> {
@@ -194,9 +261,10 @@ export interface AuthorizedContact {
   id: string;
   email: string;
   name: string;
-  role: "interne" | "partenaire_location";
-  // Id du Partenaire lie, uniquement pour role === "partenaire_location" —
-  // sert a scoper toutes les requetes de donnees a cette seule societe.
+  role: "interne" | "partenaire_location" | "apporteur_affaire";
+  // Id du Partenaire lie, pour role === "partenaire_location" ou
+  // "apporteur_affaire" — sert a scoper toutes les requetes de donnees a
+  // cette seule societe.
   partnerId?: string;
   // Hash PBKDF2 du mot de passe (jamais le mot de passe en clair) —
   // undefined tant que le contact n'a pas encore defini de mot de passe via
@@ -210,16 +278,22 @@ function escapeFormulaString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-// Verifie que l'email correspond a un Contact avec Persona = "Interne" ou
-// "Partenaire location", et renvoie son hash de mot de passe s'il en a
-// defini un (voir loginAction / src/lib/password.ts pour la verification).
+// Verifie que l'email correspond a un Contact autorise a se connecter
+// (Persona "Interne", "Partenaire location", ou "Partenaire" generique dont
+// le Partenaire lie est de Type "Apporteur d'affaires"), et renvoie son hash
+// de mot de passe s'il en a defini un (voir loginAction / src/lib/password.ts
+// pour la verification).
 export async function getAuthorizedContactByEmail(email: string): Promise<AuthorizedContact | null> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return null;
 
   const records = await listAllRecords<ContactFields>(TABLE_IDS.contact, {
     cache: "no-store",
-    filterByFormula: `AND(LOWER({Email}) = "${escapeFormulaString(normalized)}", OR({Persona} = "${PERSONA_INTERNE}", {Persona} = "${PERSONA_PARTENAIRE_LOCATION}"))`,
+    filterByFormula: `AND(LOWER({Email}) = "${escapeFormulaString(normalized)}", OR(
+      {Persona} = "${PERSONA_INTERNE}",
+      {Persona} = "${PERSONA_PARTENAIRE_LOCATION}",
+      AND({Persona} = "${PERSONA_PARTENAIRE}", FIND("${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}", ARRAYJOIN({Type de partenariat})) > 0)
+    ))`,
   });
 
   const record = records[0];
@@ -238,6 +312,12 @@ export async function getAuthorizedContactByEmail(email: string): Promise<Author
     return { id: record.id, email: normalized, name, role: "partenaire_location", partnerId, passwordHash };
   }
 
+  if (record.fields.Persona === PERSONA_PARTENAIRE) {
+    const partnerId = record.fields.Partenaire?.[0];
+    if (!partnerId) return null;
+    return { id: record.id, email: normalized, name, role: "apporteur_affaire", partnerId, passwordHash };
+  }
+
   return { id: record.id, email: normalized, name, role: "interne", passwordHash };
 }
 
@@ -247,38 +327,44 @@ export async function setContactPassword(contactId: string, passwordHash: string
   await updateRecord<ContactFields>(TABLE_IDS.contact, contactId, { "Mot de passe (hash)": passwordHash });
 }
 
-export interface PartnerLocationContact {
+export interface ViewAsContact {
   id: string;
   email: string;
   name: string;
+  role: "partenaire_location" | "apporteur_affaire";
   partnerId: string;
   partnerName: string;
 }
 
 // Utilise par la persona "Interne" pour "voir comme" un partenaire location
-// donne (memes tableaux, meme scope que si ce contact etait connecte) — sans
-// se connecter a sa place. Les contacts sans email ou sans Partenaire lie
-// sont ignores (donnee incoherente, ne peuvent de toute facon pas se
-// connecter eux-memes, voir getAuthorizedContactByEmail).
-export async function getPartnerLocationContacts(): Promise<PartnerLocationContact[]> {
+// ou un apporteur d'affaires donne (memes pages, meme scope que si ce contact
+// etait connecte) — sans se connecter a sa place. Les contacts sans email ou
+// sans Partenaire lie sont ignores (donnee incoherente, ne peuvent de toute
+// facon pas se connecter eux-memes, voir getAuthorizedContactByEmail).
+export async function getViewAsContacts(): Promise<ViewAsContact[]> {
   const [records, partenaireNames] = await Promise.all([
     listAllRecords<ContactFields>(TABLE_IDS.contact, {
       revalidate: 60,
-      filterByFormula: `{Persona} = "${PERSONA_PARTENAIRE_LOCATION}"`,
+      filterByFormula: `OR(
+        {Persona} = "${PERSONA_PARTENAIRE_LOCATION}",
+        AND({Persona} = "${PERSONA_PARTENAIRE}", FIND("${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}", ARRAYJOIN({Type de partenariat})) > 0)
+      )`,
     }),
     buildPartenaireNameMap(),
   ]);
 
-  const contacts: PartnerLocationContact[] = [];
+  const contacts: ViewAsContact[] = [];
   for (const record of records) {
     const partnerId = record.fields.Partenaire?.[0];
     const email = record.fields.Email?.trim().toLowerCase();
     if (!partnerId || !email) continue;
     const name = [record.fields.Prénom, record.fields.Nom].filter(Boolean).join(" ") || email;
+    const role = record.fields.Persona === PERSONA_PARTENAIRE_LOCATION ? "partenaire_location" : "apporteur_affaire";
     contacts.push({
       id: record.id,
       email,
       name,
+      role,
       partnerId,
       partnerName: partenaireNames.get(partnerId) ?? "Société inconnue",
     });
@@ -289,11 +375,52 @@ export async function getPartnerLocationContacts(): Promise<PartnerLocationConta
   );
 }
 
-export async function getPartnerLocationContactByEmail(email: string): Promise<PartnerLocationContact | null> {
+export async function getViewAsContactByEmail(email: string): Promise<ViewAsContact | null> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return null;
-  const contacts = await getPartnerLocationContacts();
+  const contacts = await getViewAsContacts();
   return contacts.find((c) => c.email === normalized) ?? null;
+}
+
+export interface ApporteurPartnerOption {
+  id: string;
+  name: string;
+}
+
+// Societes "Apporteur d'affaires" — utilise pour completer le filtre Societe
+// de la page Suivi des demandes (interne), qui ne liste sinon que les
+// partenaires du pipeline Location (voir getAllLocations).
+export async function getApporteurPartners(): Promise<ApporteurPartnerOption[]> {
+  const records = await listAllRecords<PartenaireFields>(TABLE_IDS.partenaire, {
+    revalidate: 60,
+    filterByFormula: `{Type} = "${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}"`,
+  });
+  return records
+    .map((r) => ({ id: r.id, name: mapPartenaireRecord(r).name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export interface PartnerCommissionInfo {
+  commission: number;
+  potentialCommission: number;
+}
+
+// Montants de commission d'un apporteur d'affaires — deja calcules par des
+// formules sur sa fiche Partenaire ("Commission" = deja acquise sur les
+// demandes installees, "Potentiel de commission" = si celles en cours
+// aboutissent) : lus tels quels plutot que recalcules, pour rester coherents
+// avec la source de verite (et avec "Commission exeption", un ajustement
+// manuel qu'on ne pourrait pas reconstituer cote app).
+export async function getPartnerCommissionInfo(partnerId: string): Promise<PartnerCommissionInfo | null> {
+  try {
+    const record = await getRecord<PartenaireFields>(TABLE_IDS.partenaire, partnerId);
+    return {
+      commission: record.fields["Commission"] ?? 0,
+      potentialCommission: record.fields["Potentiel de commission"] ?? 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export interface MovementLogRecord {
