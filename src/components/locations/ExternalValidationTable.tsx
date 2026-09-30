@@ -33,8 +33,8 @@ export function ExternalValidationTable({
           </tr>
         </thead>
         <tbody>
-          {locations.map((location) => (
-            <tr key={location.id}>
+          {locations.map((location, index) => (
+            <tr key={location.id} className={index > 0 && location.clientName !== locations[index - 1].clientName ? "client-group-start" : undefined}>
               <td className="font-medium">{location.clientName}</td>
               <td>
                 {linkable ? (
