@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { BASE_ID } from "./fields";
 import type { AirtableListResponse, AirtableRecord } from "./types";
 
@@ -62,33 +63,58 @@ function buildListUrl(
   return `${AIRTABLE_API_BASE}/${BASE_ID}/${tableId}?${params.toString()}`;
 }
 
-function requestInit(options: ListRecordsOptions): RequestInit {
-  if (options.cache) return { cache: options.cache };
-  if (typeof options.revalidate === "number") {
-    return { next: { revalidate: options.revalidate } };
-  }
-  return { cache: "no-store" };
-}
-
-// Recupere toutes les pages (Airtable plafonne a 100 enregistrements/page).
-export async function listAllRecords<TFields>(
+// Recupere toutes les pages d'une requete (Airtable plafonne a 100
+// enregistrements/page) — toujours en "no-store" : la mise en cache se fait
+// au niveau de listAllRecords, pas ici (voir plus bas pourquoi).
+async function fetchAllPages<TFields>(
   tableId: string,
-  options: ListRecordsOptions = {},
+  options: ListRecordsOptions,
 ): Promise<AirtableRecord<TFields>[]> {
   const records: AirtableRecord<TFields>[] = [];
   let offset: string | undefined;
 
   do {
     const url = buildListUrl(tableId, { ...options, offset });
-    const data: AirtableListResponse<TFields> = await airtableFetch(
-      url,
-      requestInit(options),
-    );
+    const data: AirtableListResponse<TFields> = await airtableFetch(url, { cache: "no-store" });
     records.push(...data.records);
     offset = data.offset;
   } while (offset);
 
   return records;
+}
+
+// Recupere toutes les pages (Airtable plafonne a 100 enregistrements/page).
+//
+// La mise en cache ne doit JAMAIS se faire page par page (ce qui etait fait
+// avant via `fetch(..., { next: { revalidate } })` sur chaque requete) :
+// le jeton `offset` d'une page n'est valable que quelques minutes cote
+// Airtable, et le cache fetch de Next.js revalide chaque page independamment.
+// Si la page 1 est servie perimee (stale-while-revalidate) pendant que la
+// page 2 est fraiche, ou l'inverse, le jeton offset transmis peut avoir
+// expire -> Airtable renvoie 422 et la page plante ("This page couldn't
+// load"). On met donc en cache le RESULTAT COMPLET (toutes les pages) comme
+// une seule unite atomique via unstable_cache : soit la liste entiere vient
+// du cache (jeton jamais reutilise), soit tout est re-pagine depuis zero.
+export async function listAllRecords<TFields>(
+  tableId: string,
+  options: ListRecordsOptions = {},
+): Promise<AirtableRecord<TFields>[]> {
+  if (options.cache === "no-store" || typeof options.revalidate !== "number") {
+    return fetchAllPages<TFields>(tableId, options);
+  }
+
+  const cacheKeyParts = [
+    "airtable-list",
+    tableId,
+    options.filterByFormula ?? "",
+    JSON.stringify(options.sort ?? []),
+    JSON.stringify(options.fields ?? []),
+    String(options.pageSize ?? ""),
+  ];
+  const cachedFetch = unstable_cache(() => fetchAllPages<TFields>(tableId, options), cacheKeyParts, {
+    revalidate: options.revalidate,
+  });
+  return cachedFetch();
 }
 
 export async function getRecord<TFields>(
