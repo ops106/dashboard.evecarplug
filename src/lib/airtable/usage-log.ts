@@ -17,7 +17,12 @@ export interface LogUsageInput {
 // le log est secondaire (même logique que logMovement).
 export async function logUsage(input: LogUsageInput): Promise<void> {
   const actorLabel = input.actor ? `${input.actor.name} (${input.actor.email})` : "Inconnu";
-  const actorRole: UsageLogFields["Rôle"] = input.actor?.role === "interne" ? "Interne" : "Partenaire location";
+  const actorRole: UsageLogFields["Rôle"] =
+    input.actor?.role === "interne"
+      ? "Interne"
+      : input.actor?.role === "apporteur_affaire"
+        ? "Apporteur d'affaires"
+        : "Partenaire location";
 
   const fields: UsageLogFields = {
     "Résumé": input.detail ? `${input.action} — ${input.detail}` : input.action,

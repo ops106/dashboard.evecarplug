@@ -142,10 +142,17 @@ export interface UsageLogFields {
     | "Refuser demande externe"
     | "Valider devis"
     | "Refuser devis"
-    | "Ajouter date connexion Farod";
-  "Fonctionnalité"?: "Déménagement" | "Résiliation" | "Validation externe" | "Devis" | "Connexion Farod";
+    | "Ajouter date connexion Farod"
+    | "Connexion";
+  "Fonctionnalité"?:
+    | "Déménagement"
+    | "Résiliation"
+    | "Validation externe"
+    | "Devis"
+    | "Connexion Farod"
+    | "Connexion";
   Utilisateur?: string;
-  "Rôle"?: "Interne" | "Partenaire location";
+  "Rôle"?: "Interne" | "Partenaire location" | "Apporteur d'affaires";
   "Détail"?: string;
   Date?: string;
 }

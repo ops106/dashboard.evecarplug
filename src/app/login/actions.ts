@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { SESSION_COOKIE_NAME, createSessionToken } from "@/lib/auth";
 import { getAuthorizedContactByEmail } from "@/lib/airtable/queries";
 import { verifyPassword } from "@/lib/password";
+import { logUsage } from "@/lib/airtable/usage-log";
 
 export async function loginAction(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
@@ -25,13 +26,14 @@ export async function loginAction(formData: FormData) {
     redirect(`/login?error=password&next=${encodeURIComponent(next)}`);
   }
 
-  const token = await createSessionToken({
+  const session = {
     contactId: contact.id,
     email: contact.email,
     name: contact.name,
     role: contact.role,
     partnerId: contact.partnerId,
-  });
+  };
+  const token = await createSessionToken(session);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
@@ -40,6 +42,12 @@ export async function loginAction(formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
   });
+
+  // Seule façon de savoir qu'un utilisateur s'est réellement servi de
+  // l'outil quand il n'a jamais cliqué d'action métier trackée (Valider,
+  // Accepter...) — sinon "Utilisateurs actifs" sur la page KPI le rate
+  // complètement malgré des visites bien réelles.
+  await logUsage({ action: "Connexion", feature: "Connexion", actor: session });
 
   redirect(next || "/");
 }
