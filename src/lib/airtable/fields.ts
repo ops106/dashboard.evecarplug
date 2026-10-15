@@ -8,6 +8,8 @@ export const TABLE_IDS = {
   historiqueMouvements: "tbl1ZElC8Aoj8RB5X",
   journalUtilisation: "tblIv82zxFKOPf4XB",
   pipeline: "tblC0Kk3Cs9gAoanx",
+  commerciaux: "tblcT8SLWqFegrP0b",
+  produit: "tblb2giRTAUKjZ7GP",
 } as const;
 
 // Champs de la table "Historique mouvements locatifs" (log des déménagements
@@ -102,6 +104,20 @@ export const PARTENAIRE_FIELDS = {
 export const PARTENAIRE_AUDIKA_RECORD_ID = "recOOLPjj2uVUTp8O";
 export const PARTENAIRE_SOFIP_RECORD_ID = "recdO5sSdKNO4wsHK";
 
+// Groupe Faurie est pour l'instant le seul partenaire pour lequel le
+// commercial interne EVE CAR PLUG en charge (et le véhicule concerné) sont
+// renseignés sur la demande (champs "Commercial" et "Produit" de la table
+// Demande) — voir getReferredLocations, qui n'enrichit avec ces infos que
+// pour ce partenaire.
+export const PARTENAIRE_FAURIE_RECORD_ID = "recD2SQ6Glk6flEN0";
+
+// Groupe Rossi (plusieurs concessions BMW/MINI) est pour l'instant le seul
+// partenaire pour lequel la demande identifie le contact côté partenaire qui
+// nous l'a transmise (champ "Commercial partenaire", lien vers la table
+// Contact — distinct du champ "Commercial" ci-dessus, qui lie un commercial
+// interne) — voir getReferredLocations.
+export const PARTENAIRE_ROSSI_RECORD_ID = "recHfwUk3yJ1nrzJS";
+
 // Champ "Durée d'engagement" (singleSelect) : uniquement rempli pour SOFIP,
 // voir validateExternalRequestWithDurationAction.
 export const ENGAGEMENT_DURATION_CHOICES = ["2 ans", "3 ans"] as const;
@@ -138,9 +154,10 @@ export const ETAPE_NOUVELLE_DEMANDE = ETAPE_VENTE_ORDER[0];
 // Etapes 02 à 04 : de la prise de contact à la réception des documents
 // techniques, avant l'envoi du devis — utilisé par "En cours de qualification".
 export const ETAPES_QUALIFICATION = ETAPE_VENTE_ORDER.slice(1, 4);
-// Etapes 05 à 07 : du devis envoyé au chantier — utilisé par "En cours
-// d'installation" (le devis fait partie du processus d'installation).
-export const ETAPES_EN_COURS_INSTALLATION = ETAPE_VENTE_ORDER.slice(4, 7);
+// Etapes 06 à 07 : du devis validé (signé) au chantier — utilisé par "En
+// cours d'installation". Exclut le 05 "Devis envoyé" : un devis juste envoyé
+// (pas encore signé) ne compte pas comme une installation en cours.
+export const ETAPES_EN_COURS_INSTALLATION = ETAPE_VENTE_ORDER.slice(5, 7);
 
 // Pipeline du champ "Statut modification adresse (Location)" : le bouton
 // Accepter fait avancer d'une etape, Refuser bascule directement vers le

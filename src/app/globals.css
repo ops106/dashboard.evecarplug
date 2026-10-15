@@ -496,7 +496,7 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 .slide-over-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
 }
 @media (prefers-reduced-motion: no-preference) {
   .slide-over-backdrop { animation: slide-over-fade 0.15s ease; }

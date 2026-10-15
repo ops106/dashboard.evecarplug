@@ -76,6 +76,15 @@ export interface Location {
   quoteValidatedDate?: string;
   engagementDuration?: string;
   salesRepEmail?: string;
+  // Renseignes uniquement pour Groupe Faurie (voir
+  // PARTENAIRE_FAURIE_RECORD_ID) — jamais calcules par mapDemandeRecord,
+  // ajoutes a part dans getReferredLocations pour ce partenaire seulement.
+  commercial?: string;
+  vehicle?: string;
+  // Contact côté partenaire qui a transmis la demande — renseigné
+  // uniquement pour Groupe Rossi (voir PARTENAIRE_ROSSI_RECORD_ID), ajouté
+  // a part dans getReferredLocations comme commercial/vehicle ci-dessus.
+  referrer?: string;
 }
 
 export interface Client {

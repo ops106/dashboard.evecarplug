@@ -34,6 +34,17 @@ export default async function SuiviDemandesPage({
     const installationInProgressCount = referred.filter(isInstallationInProgress).length;
     const cancelledCount = referred.filter(isCancelled).length;
 
+    // Memes 3 groupes que les big numbers du tableau de bord Apporteur : une
+    // demande est soit en cours, soit installee, soit perdue — jamais deux a
+    // la fois (partition complete de "referred").
+    const inProgress = referred.filter((l) => isNotYetInstalled(l) && !isCancelled(l));
+    const installed = referred.filter((l) => !isNotYetInstalled(l));
+    const lost = referred.filter(isCancelled);
+
+    const activeTab = params.tab === "installees" ? "installees" : params.tab === "perdues" ? "perdues" : "en-cours";
+    const tabHref = (tab?: string) => `/suivi-demandes${tab ? `?tab=${tab}` : ""}`;
+    const displayed = activeTab === "installees" ? installed : activeTab === "perdues" ? lost : inProgress;
+
     return (
       <div>
         <div className="mb-6">
@@ -48,7 +59,31 @@ export default async function SuiviDemandesPage({
           <StatCard label="Demandes annulées" value={cancelledCount} icon={<StopOctagonIcon />} />
         </div>
 
-        <PendingRequestsTable locations={referred} linkable={false} />
+        <div className="tabs">
+          <Link
+            href={tabHref()}
+            className={`tab ${activeTab === "en-cours" ? "tab-active" : ""}`}
+            aria-current={activeTab === "en-cours" ? "page" : undefined}
+          >
+            Demandes en cours ({inProgress.length})
+          </Link>
+          <Link
+            href={tabHref("installees")}
+            className={`tab ${activeTab === "installees" ? "tab-active" : ""}`}
+            aria-current={activeTab === "installees" ? "page" : undefined}
+          >
+            Demandes installées ({installed.length})
+          </Link>
+          <Link
+            href={tabHref("perdues")}
+            className={`tab ${activeTab === "perdues" ? "tab-active" : ""}`}
+            aria-current={activeTab === "perdues" ? "page" : undefined}
+          >
+            Demandes perdues ({lost.length})
+          </Link>
+        </div>
+
+        <PendingRequestsTable locations={displayed} linkable={false} />
       </div>
     );
   }

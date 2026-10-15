@@ -1,6 +1,7 @@
 import { getAllLocations, getPartnerCommissionInfo, getPendingQuoteRequests, getReferredLocations } from "@/lib/airtable/queries";
 import {
   isCancelled,
+  isInstallationInProgress,
   isNotYetInstalled,
   isRelocationPending,
   isTerminationPending,
@@ -17,6 +18,7 @@ import {
   InboxIcon,
   MapPinIcon,
   StopOctagonIcon,
+  WrenchIcon,
 } from "@/components/ui/icons";
 import { ExternalValidationTable } from "@/components/locations/ExternalValidationTable";
 import { QuoteValidationTable } from "@/components/locations/QuoteValidationTable";
@@ -50,6 +52,7 @@ export default async function DashboardPage({
       partnerId ? getPartnerCommissionInfo(partnerId) : Promise.resolve(null),
     ]);
     const inProgress = referred.filter((l) => isNotYetInstalled(l) && !isCancelled(l)).length;
+    const installationInProgress = referred.filter(isInstallationInProgress).length;
     const installed = referred.length - referred.filter(isNotYetInstalled).length;
     const lost = referred.filter(isCancelled).length;
     const formatEuros = (amount: number) => `${amount.toLocaleString("fr-FR")} €`;
@@ -79,8 +82,9 @@ export default async function DashboardPage({
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="En cours" value={inProgress} icon={<ClockIcon />} />
+          <StatCard label="En cours d'installation" value={installationInProgress} icon={<WrenchIcon />} />
           <StatCard label="Installées" value={installed} icon={<BoltIcon />} />
           <StatCard label="Perdues" value={lost} icon={<StopOctagonIcon />} />
         </div>

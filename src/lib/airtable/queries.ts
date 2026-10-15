@@ -1,6 +1,8 @@
 import "server-only";
 import { getRecord, listAllRecords, updateRecord } from "./client";
 import {
+  PARTENAIRE_FAURIE_RECORD_ID,
+  PARTENAIRE_ROSSI_RECORD_ID,
   PARTENAIRE_TYPE_APPORTEUR_AFFAIRES,
   PERSONA_INTERNE,
   PERSONA_PARTENAIRE,
@@ -20,12 +22,15 @@ import {
   mapPartenaireRecord,
 } from "./mappers";
 import type {
+  AirtableRecord,
+  CommerciauxFields,
   ContactFields,
   DemandeFields,
   HistoriqueMouvementFields,
   LieuxFields,
   PartenaireFields,
   PipelineFields,
+  ProduitFields,
   UsageLogFields,
 } from "./types";
 
@@ -44,6 +49,34 @@ async function buildPartenaireNameMap(): Promise<Map<string, string>> {
 async function buildLieuxNameMap(): Promise<Map<string, string>> {
   const records = await listAllRecords<LieuxFields>(TABLE_IDS.lieux, { revalidate: 30 });
   return new Map(records.map((r) => [r.id, mapLieuxName(r)]));
+}
+
+// Utilises uniquement pour enrichir les demandes de Groupe Faurie (voir
+// getReferredLocations) — pas de lookup direct sur la Demande pour ces deux
+// champs, contrairement au Partenaire/Lieux.
+async function buildCommercialNameMap(): Promise<Map<string, string>> {
+  const records = await listAllRecords<CommerciauxFields>(TABLE_IDS.commerciaux, { revalidate: 60 });
+  return new Map(records.map((r) => [r.id, r.fields.Commercial ?? "Commercial inconnu"]));
+}
+
+async function buildProduitNameMap(): Promise<Map<string, string>> {
+  const records = await listAllRecords<ProduitFields>(TABLE_IDS.produit, { revalidate: 60 });
+  return new Map(records.map((r) => [r.id, r.fields.Produit ?? "Véhicule inconnu"]));
+}
+
+// Resout uniquement les Contact ids passes en parametre (jamais toute la
+// table, potentiellement tres volumineuse) — utilise pour enrichir les
+// demandes de Groupe Rossi avec le contact partenaire qui les a transmises
+// (voir getReferredLocations).
+async function buildContactNameMap(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const records = await listAllRecords<ContactFields>(TABLE_IDS.contact, {
+    revalidate: 30,
+    filterByFormula: `OR(${ids.map((id) => `RECORD_ID()="${id}"`).join(",")})`,
+  });
+  return new Map(
+    records.map((r) => [r.id, [r.fields.Prénom, r.fields.Nom].filter(Boolean).join(" ") || "Contact inconnu"]),
+  );
 }
 
 // 11 lignes fixes (ENTRANT, B2B AT HOME - LOCATION...) : cache plus long,
@@ -145,19 +178,73 @@ export async function getAllLocations(options?: { partnerId?: string }): Promise
 // Toutes les demandes rattachees a un Partenaire donne, tous pipelines
 // confondus — utilise par la persona "Apporteur d'affaires", dont les
 // demandes vivent hors du pipeline Location (ex. "ENTRANT") et ne sont donc
-// jamais renvoyees par getAllLocations. Pas de filtre Pipeline cote Airtable
-// ici : on recupere toute la table (meme cache court que getAllDemandeRecords)
-// puis on filtre en JS par id de Partenaire, pour la meme raison que
-// getAllLocations (ARRAYJOIN renvoie des noms, pas des ids).
+// jamais renvoyees par getAllLocations. Pas de filtre par id cote Airtable
+// (ARRAYJOIN renvoie des noms, pas des ids) : on filtre par NOM via FIND()
+// pour eviter de recuperer la table Demande entiere (qui depasse la limite
+// de 2 Mo du cache Next.js et force un aller-retour Airtable complet a
+// chaque navigation), puis on filtre en JS par id de Partenaire pour ecarter
+// un faux positif de sous-chaine (ex. "Audika" matchant "Audika Groupe").
 export async function getReferredLocations(partnerId: string): Promise<Location[]> {
+  let partner: AirtableRecord<PartenaireFields> | null;
+  try {
+    partner = await getRecord<PartenaireFields>(TABLE_IDS.partenaire, partnerId);
+  } catch {
+    return [];
+  }
+  const partnerName = mapPartenaireRecord(partner).name;
+
   const [demandeRecords, partenaireNames, lieuxNames] = await Promise.all([
-    listAllRecords<DemandeFields>(TABLE_IDS.demande, { revalidate: 10 }),
+    listAllRecords<DemandeFields>(TABLE_IDS.demande, {
+      revalidate: 10,
+      filterByFormula: `FIND("${escapeFormulaString(partnerName)}", ARRAYJOIN({Partenaire})) > 0`,
+    }),
     buildPartenaireNameMap(),
     buildLieuxNameMap(),
   ]);
-  return demandeRecords
+  const locations = demandeRecords
     .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
     .filter((l) => l.clientId === partnerId);
+  const fieldsById = new Map(demandeRecords.map((r) => [r.id, r.fields]));
+
+  // Le commercial interne EVE CAR PLUG en charge et le vehicule concerne
+  // sont renseignes sur la demande ("Commercial"/"Produit" cote Airtable)
+  // uniquement pour Groupe Faurie pour l'instant — enrichi seulement ici
+  // plutot que dans mapDemandeRecord (qui resterait vide pour tout le reste
+  // de l'app).
+  if (partnerId === PARTENAIRE_FAURIE_RECORD_ID) {
+    const [commercialNames, produitNames] = await Promise.all([buildCommercialNameMap(), buildProduitNameMap()]);
+    return locations.map((l) => {
+      const f = fieldsById.get(l.id);
+      const commercialId = f?.Commercial?.[0];
+      const vehicleId = f?.Produit?.[0];
+      return {
+        ...l,
+        commercial: (commercialId && commercialNames.get(commercialId)) || undefined,
+        vehicle: (vehicleId && produitNames.get(vehicleId)) || undefined,
+      };
+    });
+  }
+
+  // Le contact cote partenaire qui a transmis la demande ("Commercial
+  // partenaire" cote Airtable) n'est renseigne que pour Groupe Rossi pour
+  // l'instant — le lieu correspondant est deja sur location.siteName (champ
+  // "Lieux" de la demande, rempli directement pour ce partenaire).
+  if (partnerId === PARTENAIRE_ROSSI_RECORD_ID) {
+    const referrerIds = [
+      ...new Set(
+        demandeRecords
+          .map((r) => r.fields["Commercial partenaire"]?.[0])
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const referrerNames = await buildContactNameMap(referrerIds);
+    return locations.map((l) => {
+      const referrerId = fieldsById.get(l.id)?.["Commercial partenaire"]?.[0];
+      return { ...l, referrer: (referrerId && referrerNames.get(referrerId)) || undefined };
+    });
+  }
+
+  return locations;
 }
 
 export async function getLocationById(id: string): Promise<Location | null> {

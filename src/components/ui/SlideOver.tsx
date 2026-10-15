@@ -3,15 +3,26 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Chrome d'une modale glissant depuis la droite, pilotée par la navigation
-// (route interceptée) plutôt que par un state local — fermer = revenir dans
-// l'historique (router.back()), ce qui bascule Next.js sur le slot
-// @modal/default.tsx et révèle la page en dessous.
-export function SlideOver({ title, children }: { title: string; children: React.ReactNode }) {
+// Chrome d'une modale glissant depuis la droite. Deux usages : piloté par la
+// navigation (route interceptée, ex. /locations/[id] — fermer = router.back(),
+// ce qui bascule Next.js sur le slot @modal/default.tsx et révèle la page en
+// dessous) quand `onClose` n'est pas fourni, ou piloté par un state local
+// (`onClose`) pour une fiche de lecture sans route dédiée (ex. détails d'une
+// demande apportée, voir RequestDetailsButton).
+export function SlideOver({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose?: () => void;
+}) {
   const router = useRouter();
 
   function close() {
-    router.back();
+    if (onClose) onClose();
+    else router.back();
   }
 
   useEffect(() => {

@@ -71,6 +71,28 @@ export interface DemandeFields {
   // table Commerciaux via le champ "Commercial" — permet d'alerter le
   // commercial en charge de la demande dans les webhooks Make.
   "Email (from Commercial)"?: string[];
+  // Lien vers la table Commerciaux (voir CommerciauxFields) et vers la table
+  // Produit (voir ProduitFields) — remplis uniquement pour Groupe Faurie
+  // (voir PARTENAIRE_FAURIE_RECORD_ID), pas de lookup direct donc resolus via
+  // buildCommercialNameMap/buildProduitNameMap dans queries.ts.
+  Commercial?: string[];
+  Produit?: string[];
+  // Lien vers la table Contact : le contact côté partenaire qui a transmis
+  // la demande — rempli uniquement pour Groupe Rossi (voir
+  // PARTENAIRE_ROSSI_RECORD_ID), distinct du champ "Commercial" ci-dessus.
+  "Commercial partenaire"?: string[];
+}
+
+// Table "Commerciaux" : commerciaux internes EVE CAR PLUG. Seul le champ
+// primaire (formule Prénom + Nom) nous interesse ici.
+export interface CommerciauxFields {
+  Commercial?: string;
+}
+
+// Table "Produit" : vehicules concernes par une demande (Groupe Faurie
+// uniquement pour l'instant). Seul le champ primaire nous interesse ici.
+export interface ProduitFields {
+  Produit?: string;
 }
 
 export interface PartenaireFields {

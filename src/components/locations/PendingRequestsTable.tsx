@@ -4,6 +4,7 @@ import type { Location } from "@/lib/airtable/mappers";
 import { groupLocationsByStage } from "@/lib/airtable/mappers";
 import { formatDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { RequestDetailsButton } from "@/components/locations/RequestDetailsButton";
 
 export function PendingRequestsTable({
   locations,
@@ -17,6 +18,12 @@ export function PendingRequestsTable({
   }
 
   const groups = groupLocationsByStage(locations);
+  // Contact partenaire qui a transmis la demande + lieu correspondant :
+  // renseigne uniquement pour Groupe Rossi (voir PARTENAIRE_ROSSI_RECORD_ID
+  // / getReferredLocations) — colonnes ajoutees seulement quand pertinentes,
+  // pas pour les locations du reste de l'app ou ces champs sont toujours vides.
+  const showReferrerColumns = locations.some((l) => l.referrer);
+  const columnCount = showReferrerColumns ? 7 : 5;
 
   return (
     <div className="card overflow-x-auto p-0">
@@ -28,13 +35,19 @@ export function PendingRequestsTable({
             <th>Email</th>
             <th>Téléphone</th>
             <th>Date de la demande</th>
+            {showReferrerColumns && (
+              <>
+                <th>Commercial</th>
+                <th>Lieu</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
           {groups.map((group) => (
             <Fragment key={group.status}>
               <tr className="status-group-row">
-                <td colSpan={5}>
+                <td colSpan={columnCount}>
                   {group.status} · {group.locations.length}
                 </td>
               </tr>
@@ -47,12 +60,18 @@ export function PendingRequestsTable({
                         {location.contact || "—"}
                       </Link>
                     ) : (
-                      location.contact || "—"
+                      <RequestDetailsButton location={location} />
                     )}
                   </td>
                   <td>{location.email || "—"}</td>
                   <td>{location.phone || "—"}</td>
                   <td>{formatDate(location.requestDate)}</td>
+                  {showReferrerColumns && (
+                    <>
+                      <td>{location.referrer || "—"}</td>
+                      <td>{location.siteName || "—"}</td>
+                    </>
+                  )}
                 </tr>
               ))}
             </Fragment>
