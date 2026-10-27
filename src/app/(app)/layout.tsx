@@ -1,6 +1,7 @@
 import { Nav } from "@/components/layout/Nav";
+import { NewRequestBubble } from "@/components/locations/NewRequestBubble";
 import { getSessionUser } from "@/lib/session";
-import { getViewAsContacts } from "@/lib/airtable/queries";
+import { getPartnerEmbedHtml, getViewAsContacts } from "@/lib/airtable/queries";
 import { getViewAsContext } from "@/lib/view-as";
 
 // Donnees live depuis Airtable, derriere l'auth par email : pas de
@@ -15,9 +16,10 @@ export default async function AppLayout({
   modal: React.ReactNode;
 }) {
   const session = await getSessionUser();
-  const { isInterne, isPartner, isApporteur, viewAsEmail } = await getViewAsContext(session);
+  const { isInterne, isPartner, isApporteur, partnerId, viewAsEmail } = await getViewAsContext(session);
 
   const viewAsContacts = isInterne ? await getViewAsContacts() : [];
+  const embedHtml = isApporteur && partnerId ? await getPartnerEmbedHtml(partnerId) : null;
 
   return (
     <div className="flex flex-1">
@@ -34,6 +36,7 @@ export default async function AppLayout({
       <main className="flex-1 px-6 py-8 app-main" style={{ overflowX: "auto" }}>
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
+      {isApporteur && <NewRequestBubble embedHtml={embedHtml} />}
       {modal}
     </div>
   );

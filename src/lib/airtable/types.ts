@@ -109,6 +109,10 @@ export interface PartenaireFields {
   // jamais recalcules cote app, juste lus tels quels.
   "Commission"?: number;
   "Potentiel de commission"?: number;
+  // Snippet HTML (div + script Fillout) pre-calcule par Airtable selon le
+  // Type du partenaire (apporteur d'affaires ou societe contrat cadre) — voir
+  // getPartnerEmbedHtml.
+  "EMBED partenaire (Real)"?: string;
 }
 
 // Table "Pipeline" (11 lignes : ENTRANT, B2B AT HOME - LOCATION, etc.) — le

@@ -94,6 +94,7 @@ export const PARTENAIRE_FIELDS = {
   nomEntreprise: "Nom de l'entreprise",
   emailPrincipal: "Email principal",
   type: "Type",
+  embedFormulaire: "EMBED partenaire (Real)",
 } as const;
 
 // Id des records Partenaire (table `Partenaire`) pour lesquels la popup de

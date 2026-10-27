@@ -2,6 +2,7 @@ import "server-only";
 import { getRecord, listAllRecords, updateRecord } from "./client";
 import {
   PARTENAIRE_FAURIE_RECORD_ID,
+  PARTENAIRE_FIELDS,
   PARTENAIRE_ROSSI_RECORD_ID,
   PARTENAIRE_TYPE_APPORTEUR_AFFAIRES,
   PERSONA_INTERNE,
@@ -507,6 +508,19 @@ export async function getPartnerCommissionInfo(partnerId: string): Promise<Partn
       commission: record.fields["Commission"] ?? 0,
       potentialCommission: record.fields["Potentiel de commission"] ?? 0,
     };
+  } catch {
+    return null;
+  }
+}
+
+// Formulaire "Nouvelle demande" du persona Apporteur d'affaires : Airtable
+// pre-calcule le snippet d'embed Fillout (div + script) adapte au partenaire
+// (identifiants de pipeline/partenaire deja injectes dans les data-attributes)
+// — voir PARTENAIRE_FIELDS.embedFormulaire. Rendu tel quel par FilloutEmbedForm.
+export async function getPartnerEmbedHtml(partnerId: string): Promise<string | null> {
+  try {
+    const record = await getRecord<PartenaireFields>(TABLE_IDS.partenaire, partnerId);
+    return record.fields[PARTENAIRE_FIELDS.embedFormulaire] ?? null;
   } catch {
     return null;
   }
