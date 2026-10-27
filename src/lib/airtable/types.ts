@@ -3,6 +3,11 @@ export interface DemandeFields {
   Partenaire?: string[];
   Lieux?: string[];
   Pipeline?: string[];
+  // Id numerique (en texte) de l'opportunite Sellsy correspondante — voir
+  // "Lien opportunité" (formule construite a partir de ce champ) et
+  // notifyRequestDecision, qui le transmet au scenario Make pour faire
+  // avancer l'etape Sellsy quand un devis est valide.
+  "Opportunity ID"?: string;
   // Horodatage automatique Airtable (jamais modifiable) — plus fiable que
   // "Date de la demande" (champ metier, parfois vide ou saisi a la main)
   // pour compter les opportunites reellement creees a une date donnee.

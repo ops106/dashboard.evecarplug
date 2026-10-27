@@ -4,7 +4,25 @@ import type { Location } from "@/lib/airtable/mappers";
 import { groupLocationsByStage } from "@/lib/airtable/mappers";
 import { formatDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ExportXlsButton } from "@/components/ui/ExportXlsButton";
+import { toExportDate } from "@/lib/export-xlsx";
 import { RequestDetailsButton } from "@/components/locations/RequestDetailsButton";
+
+function toExportRows(locations: Location[], showReferrerColumns: boolean) {
+  return locations.map((l) => ({
+    Société: l.clientName,
+    Client: l.contact || "—",
+    Email: l.email || "—",
+    Téléphone: l.phone || "—",
+    Adresse: l.fullAddress || l.address || "—",
+    "Étape de vente": l.stage ?? "—",
+    "Date de chantier": toExportDate(l.constructionDate),
+    "Date de première connexion farod": toExportDate(l.firstFarodConnectionDate),
+    "Date de la demande": toExportDate(l.requestDate),
+    "Nouvelle adresse": l.relocation.newAddress || "—",
+    ...(showReferrerColumns ? { Commercial: l.referrer || "—", Lieu: l.siteName || "—" } : {}),
+  }));
+}
 
 export function PendingRequestsTable({
   locations,
@@ -26,8 +44,12 @@ export function PendingRequestsTable({
   const columnCount = showReferrerColumns ? 7 : 5;
 
   return (
-    <div className="card overflow-x-auto p-0">
-      <table className="table min-w-[780px]">
+    <div>
+      <div className="mb-3 flex justify-end">
+        <ExportXlsButton rows={toExportRows(locations, showReferrerColumns)} filename="suivi-demandes.xlsx" />
+      </div>
+      <div className="card overflow-x-auto p-0">
+        <table className="table min-w-[780px]">
         <thead>
           <tr>
             <th>Société</th>
@@ -77,7 +99,8 @@ export function PendingRequestsTable({
             </Fragment>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,25 @@ import { acceptTerminationAction, refuseTerminationAction } from "@/lib/airtable
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/Badge";
 import { StatusProgressBar } from "@/components/ui/StatusProgressBar";
+import { ExportXlsButton } from "@/components/ui/ExportXlsButton";
+import { toExportDate } from "@/lib/export-xlsx";
+
+function toExportRows(locations: Location[]) {
+  return locations.map((l) => ({
+    Société: l.clientName,
+    Client: l.requesterName,
+    Email: l.email || "—",
+    Téléphone: l.phone || "—",
+    Adresse: l.address || "—",
+    "Étape de vente": l.stage ?? "—",
+    Statut: l.termination.status ?? "—",
+    "Date de chantier": toExportDate(l.constructionDate),
+    "Date de première connexion farod": toExportDate(l.firstFarodConnectionDate),
+    "Date demande arrêt": toExportDate(l.termination.requestDate),
+    "Code postal": l.postalCode || "—",
+    Ville: l.city || "—",
+  }));
+}
 
 export function TerminationRequestsTable({
   locations,
@@ -27,8 +46,12 @@ export function TerminationRequestsTable({
   const columnCount = canManage ? 6 : 7;
 
   return (
-    <div className="card overflow-x-auto p-0">
-      <table className="table min-w-[860px]">
+    <div>
+      <div className="mb-3 flex justify-end">
+        <ExportXlsButton rows={toExportRows(locations)} filename="demandes-resiliation.xlsx" />
+      </div>
+      <div className="card overflow-x-auto p-0">
+        <table className="table min-w-[860px]">
         <thead>
           <tr>
             <th>Société</th>
@@ -107,7 +130,8 @@ export function TerminationRequestsTable({
             </Fragment>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

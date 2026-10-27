@@ -76,6 +76,7 @@ export interface Location {
   quoteValidatedDate?: string;
   engagementDuration?: string;
   salesRepEmail?: string;
+  opportunityId?: string;
   // Renseignes uniquement pour Groupe Faurie (voir
   // PARTENAIRE_FAURIE_RECORD_ID) — jamais calcules par mapDemandeRecord,
   // ajoutes a part dans getReferredLocations pour ce partenaire seulement.
@@ -253,6 +254,7 @@ export function mapDemandeRecord(
     quoteValidatedDate: f["Date de validation du devis"],
     engagementDuration: f["Durée d'engagement"],
     salesRepEmail: f["Email (from Commercial)"]?.[0],
+    opportunityId: f["Opportunity ID"],
   };
 }
 

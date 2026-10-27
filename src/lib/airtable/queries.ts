@@ -7,7 +7,6 @@ import {
   PERSONA_INTERNE,
   PERSONA_PARTENAIRE,
   PERSONA_PARTENAIRE_LOCATION,
-  PIPELINE_FACTURATION_ENTREPRISE,
   PIPELINE_LOCATION,
   PIPELINE_LOCATION_RECORD_ID,
   QUOTE_STATUS_A_VALIDER,
@@ -276,14 +275,17 @@ export async function getPendingQuoteRequests(options?: { partnerId?: string }):
   return options?.partnerId ? requests.filter((l) => l.clientId === options.partnerId) : requests;
 }
 
-// Page Facturation : toutes les demandes du pipeline "Facturation
-// entreprise" (pas seulement celles en attente de validation, contrairement
-// a getPendingQuoteRequests), pour un suivi des montants tous statuts
-// confondus.
+// Page Facturation/Historique : toutes les demandes ayant un devis d'ajout
+// supplementaire (pas seulement celles en attente de validation, contrairement
+// a getPendingQuoteRequests), tous statuts confondus. Filtre sur la presence
+// du champ "Statut devis" plutot que sur le pipeline "Facturation entreprise"
+// — un ajout supplementaire sur un contrat Location existant (ex. Audika)
+// reste rattache au pipeline "B2B AT HOME - LOCATION", seul "Statut devis"
+// est renseigne (voir aussi getAllQuoteDemandeRecords, meme logique).
 async function getAllFacturationDemandeRecords() {
   return listAllRecords<DemandeFields>(TABLE_IDS.demande, {
     revalidate: 10,
-    filterByFormula: `FIND("${PIPELINE_FACTURATION_ENTREPRISE}", ARRAYJOIN({Pipeline})) > 0`,
+    filterByFormula: `{Statut devis} != ""`,
   });
 }
 

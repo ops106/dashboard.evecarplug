@@ -28,7 +28,9 @@ const NAV_GROUPS: { label?: string; links: NavLink[] }[] = [
     label: "Suivi & gestion",
     links: [
       { href: "/suivi-demandes", label: "Suivi des demandes" },
-      { href: "/facturation", label: "Facturation", roles: ["interne", "partenaire_location"] },
+      { href: "/facturation", label: "Facturation", roles: ["interne"] },
+      { href: "/historique", label: "Historique", roles: ["interne"] },
+      { href: "/facturation", label: "Historique", roles: ["partenaire_location"] },
     ],
   },
   {

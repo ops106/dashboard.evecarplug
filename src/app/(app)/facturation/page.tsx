@@ -1,11 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAllFacturationRequests, getAllLocations } from "@/lib/airtable/queries";
+import { getAllFacturationRequests, getAllLocations, getMovementHistory } from "@/lib/airtable/queries";
 import { ETAPE_INSTALLATION_TERMINEE, QUOTE_STATUS_VALIDE } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { FacturationTable } from "@/components/locations/FacturationTable";
+import { MovementHistoryTable } from "@/components/locations/MovementHistoryTable";
 import { PendingFarodConnectionTable } from "@/components/locations/PendingFarodConnectionTable";
+// Note : la page "Historique" (/historique) reprend ce meme affichage
+// (devis valides + mouvements aboutis) pour le persona interne, tous
+// partenaires confondus — voir ce fichier pour le contenu equivalent cote
+// interne, en plus de la Facturation ci-dessous (jamais a la place).
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -27,6 +32,13 @@ export default async function FacturationPage({
   const filtered = isPartner
     ? (await getAllFacturationRequests({ partnerId })).filter((l) => l.quoteStatus === QUOTE_STATUS_VALIDE)
     : [];
+
+  // Déménagements/résiliations aboutis : ne contient que l'aboutissement
+  // final (voir logIfFinalRelocation/logIfFinalTermination), jamais les
+  // étapes intermédiaires ni les refus — même logique que les devis validés
+  // ci-dessus. Réservé au persona partenaire ici ; côté interne, l'équivalent
+  // tous partenaires confondus vit sur la page /historique.
+  const movementHistory = isPartner ? await getMovementHistory({ partnerId }) : [];
 
   // Chantiers installés sans date de 1ère connexion Farod — réservé au
   // persona interne, jamais visible en mode "voir comme partenaire".
@@ -59,7 +71,7 @@ export default async function FacturationPage({
   return (
     <div>
       <div className="mb-6">
-        <h2 style={{ fontSize: 25 }}>Facturation</h2>
+        <h2 style={{ fontSize: 25 }}>{isPartner ? "Historique" : "Facturation"}</h2>
         <p className="mt-1 text-sm text-muted">
           {isPartner
             ? `Suivi des montants de devis. ${filtered.length} résultat${filtered.length > 1 ? "s" : ""}.`
@@ -68,13 +80,23 @@ export default async function FacturationPage({
       </div>
 
       {isPartner && (
-        <>
+        <div className="mb-8">
           <div className="mb-3 flex items-center gap-2">
             <h4>Travaux supplémentaires</h4>
             <span className="tag tag-accent">{filtered.length}</span>
           </div>
           <FacturationTable locations={filtered} />
-        </>
+        </div>
+      )}
+
+      {isPartner && (
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <h4>Déménagements et résiliations aboutis</h4>
+            <span className="tag tag-accent">{movementHistory.length}</span>
+          </div>
+          <MovementHistoryTable entries={movementHistory} />
+        </div>
       )}
 
       {!isPartner && (
@@ -109,7 +131,7 @@ export default async function FacturationPage({
       )}
 
       {!isPartner && (
-        <div>
+        <div className="mb-8">
           <div className="mb-3 flex items-center gap-2">
             <h4>Installations terminées sans 1ère connexion Farod</h4>
             <span className="tag tag-accent">{pendingFarodConnection.length}</span>
