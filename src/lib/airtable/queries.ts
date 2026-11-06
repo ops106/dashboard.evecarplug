@@ -1,5 +1,6 @@
 import "server-only";
 import { getRecord, listAllRecords, updateRecord } from "./client";
+import { isWithinPartnerScope } from "./partner-scope";
 import {
   PARTENAIRE_FAURIE_RECORD_ID,
   PARTENAIRE_FIELDS,
@@ -172,7 +173,7 @@ export async function getAllLocations(options?: { partnerId?: string }): Promise
   const locations = demandeRecords
     .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
     .filter((l) => l.clientName !== CLIENT_INCONNU);
-  return options?.partnerId ? locations.filter((l) => l.clientId === options.partnerId) : locations;
+  return options?.partnerId ? locations.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : locations;
 }
 
 // Toutes les demandes rattachees a un Partenaire donne, tous pipelines
@@ -273,7 +274,7 @@ export async function getPendingQuoteRequests(options?: { partnerId?: string }):
   const requests = demandeRecords
     .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
     .filter((l) => l.clientName !== CLIENT_INCONNU);
-  return options?.partnerId ? requests.filter((l) => l.clientId === options.partnerId) : requests;
+  return options?.partnerId ? requests.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : requests;
 }
 
 // Page Facturation/Historique : toutes les demandes ayant un devis d'ajout
@@ -299,7 +300,7 @@ export async function getAllFacturationRequests(options?: { partnerId?: string }
   const requests = demandeRecords
     .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
     .filter((l) => l.clientName !== CLIENT_INCONNU);
-  return options?.partnerId ? requests.filter((l) => l.clientId === options.partnerId) : requests;
+  return options?.partnerId ? requests.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : requests;
 }
 
 // Utilise par validateQuoteAction/refuseQuoteAction : contrairement a
@@ -575,7 +576,7 @@ export async function getMovementHistory(options?: { partnerId?: string }): Prom
     };
   });
 
-  return options?.partnerId ? entries.filter((e) => e.clientId === options.partnerId) : entries;
+  return options?.partnerId ? entries.filter((e) => isWithinPartnerScope(e.clientId, options.partnerId)) : entries;
 }
 
 export interface UsageLogEntry {

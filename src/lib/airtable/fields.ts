@@ -119,6 +119,15 @@ export const PARTENAIRE_FAURIE_RECORD_ID = "recD2SQ6Glk6flEN0";
 // interne) — voir getReferredLocations.
 export const PARTENAIRE_ROSSI_RECORD_ID = "recHfwUk3yJ1nrzJS";
 
+// Prodition pilote egalement les installations du client Diatec : son
+// interface doit refleter les deux societes comme un seul perimetre. Voir
+// partner-scope.ts (expandPartnerScope), seul endroit qui connait cette
+// exception — pas de lien Airtable multi-partenaire sur le contact, qui ne
+// resoudrait rien (session et scenario Make ne lisent qu'un seul partenaire
+// lie par contact).
+export const PARTENAIRE_PRODITION_RECORD_ID = "recCjB2Y7A7zOzw2k";
+export const PARTENAIRE_DIATEC_RECORD_ID = "recWfafv86N25lFWz";
+
 // Champ "Durée d'engagement" (singleSelect) : uniquement rempli pour SOFIP,
 // voir validateExternalRequestWithDurationAction.
 export const ENGAGEMENT_DURATION_CHOICES = ["2 ans", "3 ans"] as const;

@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { getQuoteRequestById } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
+import { isWithinPartnerScope } from "@/lib/airtable/partner-scope";
 import { QuoteDetailContent } from "@/components/locations/QuoteDetailContent";
 
 export default async function QuoteDetailPage({
@@ -18,7 +19,7 @@ export default async function QuoteDetailPage({
 
   const location = await getQuoteRequestById(id);
   if (!location) notFound();
-  if (isPartner && location.clientId !== partnerId) notFound();
+  if (isPartner && !isWithinPartnerScope(location.clientId, partnerId)) notFound();
 
   return (
     <div className="space-y-6">
