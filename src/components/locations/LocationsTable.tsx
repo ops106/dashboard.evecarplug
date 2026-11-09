@@ -26,10 +26,20 @@ export function LocationsTable({
   locations,
   showClient = true,
   linkable = true,
+  // "/locations" (pipeline Location, par defaut) ou "/facturation"
+  // (pipeline-agnostic, voir getQuoteRequestById) : getLocationById rejette
+  // les demandes hors pipeline Location (persona partenaire_facturation,
+  // page /bornes-installees — pas de fiche detail dediee pour l'instant).
+  detailBasePath = "/locations",
+  // Déménagement/résiliation : sans objet pour une société à contrat cadre
+  // (persona partenaire_facturation) — masque la colonne Actions entière.
+  showActions = true,
 }: {
   locations: Location[];
   showClient?: boolean;
   linkable?: boolean;
+  detailBasePath?: "/locations" | "/facturation";
+  showActions?: boolean;
 }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune location ne correspond à ces critères." />;
@@ -49,7 +59,7 @@ export function LocationsTable({
               <th>Date de chantier</th>
               <th>Date de première connexion farod</th>
               <th>Entité partenaire</th>
-              <th>Actions</th>
+              {showActions && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -58,7 +68,7 @@ export function LocationsTable({
                 {showClient && <td className="font-medium">{location.clientName}</td>}
                 <td>
                   {linkable ? (
-                    <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                    <Link href={`${detailBasePath}/${location.id}`} className="text-inherit no-underline hover:underline">
                       {location.contact || "—"}
                     </Link>
                   ) : (
@@ -68,14 +78,16 @@ export function LocationsTable({
                 <td>{formatDate(location.constructionDate)}</td>
                 <td>{formatDate(location.firstFarodConnectionDate)}</td>
                 <td>{location.partnerEntity || "—"}</td>
-                <td className="whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <RelocationRequestButton locationId={location.id} disabled={isRelocationPending(location)} />
-                    <div className="ml-auto">
-                      <TerminationRequestButton locationId={location.id} disabled={isTerminationPending(location)} />
+                {showActions && (
+                  <td className="whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <RelocationRequestButton locationId={location.id} disabled={isRelocationPending(location)} />
+                      <div className="ml-auto">
+                        <TerminationRequestButton locationId={location.id} disabled={isTerminationPending(location)} />
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

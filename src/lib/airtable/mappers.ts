@@ -69,11 +69,14 @@ export interface Location {
   termination: TerminationRequest;
   hasTerminationRequest: boolean;
   externalValidationStatus?: DemandeFields["EXTERNAL - Validation demande "];
+  externalValidationDate?: string;
+  externalValidatedBy?: string;
   quoteStatus?: DemandeFields["Statut devis"];
   quoteLink?: string;
   quoteRefusalReason?: string;
   quoteAmount?: number;
   quoteValidatedDate?: string;
+  quoteValidatedBy?: string;
   engagementDuration?: string;
   salesRepEmail?: string;
   opportunityId?: string;
@@ -247,11 +250,14 @@ export function mapDemandeRecord(
     termination,
     hasTerminationRequest,
     externalValidationStatus: f["EXTERNAL - Validation demande "],
+    externalValidationDate: f["Date de validation (demande externe)"],
+    externalValidatedBy: f["Validé par (demande externe)"],
     quoteStatus: f["Statut devis"],
     quoteLink: f["Lien du devis"],
     quoteRefusalReason: f["Raison refus devis"],
     quoteAmount: f["Montant du devis entreprise"],
     quoteValidatedDate: f["Date de validation du devis"],
+    quoteValidatedBy: f["Validé par (devis)"],
     engagementDuration: f["Durée d'engagement"],
     salesRepEmail: f["Email (from Commercial)"]?.[0],
     opportunityId: f["Opportunity ID"],
@@ -308,6 +314,14 @@ export function isNotYetInstalled(location: Location): boolean {
 
 export function isCancelled(location: Location): boolean {
   return location.stage === ETAPE_PROJET_ANNULE;
+}
+
+// Suivi des demandes (persona partenaire location) : installation terminée
+// (donc "active", voir isLocationActive) mais pas encore remontée sur
+// /locations — qui exige en plus une date de première connexion farod.
+// Groupe virtuel affiché en dernier statut, hors ETAPE_VENTE_ORDER.
+export function isAwaitingFarodConnection(location: Location): boolean {
+  return location.isActive && !location.firstFarodConnectionDate;
 }
 
 // Big numbers de la page Suivi des demandes.

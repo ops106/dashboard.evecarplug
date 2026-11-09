@@ -18,9 +18,9 @@ export default async function ClientDetailModal({
   const { id } = await params;
 
   const session = await getSessionUser();
-  const { isInterne, isPartner, partnerId } = await getViewAsContext(session);
-  if (!isInterne && !isPartner) redirect("/");
-  if (isPartner && id !== partnerId) notFound();
+  const { isInterne, isPartner, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  if (!isInterne && !isPartner && !isFacturationEntreprise) redirect("/");
+  if ((isPartner || isFacturationEntreprise) && id !== partnerId) notFound();
 
   const client = await getClientById(id);
   if (!client) notFound();

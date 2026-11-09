@@ -17,7 +17,11 @@ export interface TerminationWebhookPayload {
   address?: string;
   postalCode?: string;
   city?: string;
-  actor: { name: string; email: string; role: "interne" | "partenaire_location" | "apporteur_affaire" } | null;
+  actor: {
+    name: string;
+    email: string;
+    role: "interne" | "partenaire_location" | "apporteur_affaire" | "partenaire_facturation";
+  } | null;
   locationUrl?: string;
   timestamp: string;
 }

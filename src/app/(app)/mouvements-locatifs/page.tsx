@@ -27,8 +27,8 @@ export default async function MouvementsLocatifsPage({
   const params = await searchParams;
   const showHistory = params.tab === "historique";
   const session = await getSessionUser();
-  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
-  if (isApporteur) redirect("/");
+  const { isPartner, isApporteur, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  if (isApporteur || isFacturationEntreprise) redirect("/");
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
 

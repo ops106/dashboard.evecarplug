@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import type { Location } from "@/lib/airtable/mappers";
+import type { Location, StatusGroup } from "@/lib/airtable/mappers";
 import { groupLocationsByStage } from "@/lib/airtable/mappers";
 import { formatDate } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -27,26 +27,38 @@ function toExportRows(locations: Location[], showReferrerColumns: boolean) {
 export function PendingRequestsTable({
   locations,
   linkable = true,
+  extraGroups = [],
+  // "/locations" (pipeline Location, par defaut) ou "/facturation"
+  // (pipeline-agnostic, voir getQuoteRequestById) : getLocationById rejette
+  // les demandes hors pipeline Location (persona partenaire_facturation).
+  detailBasePath = "/locations",
 }: {
   locations: Location[];
   linkable?: boolean;
+  // Groupe(s) virtuel(s) ajoute(s) apres les etapes du pipeline (ex. "En
+  // attente de première connexion"), hors ETAPE_VENTE_ORDER — voir
+  // isAwaitingFarodConnection.
+  extraGroups?: StatusGroup[];
+  detailBasePath?: "/locations" | "/facturation";
 }) {
-  if (locations.length === 0) {
+  const groups = [...groupLocationsByStage(locations), ...extraGroups];
+  const allDisplayed = groups.flatMap((g) => g.locations);
+
+  if (allDisplayed.length === 0) {
     return <EmptyState message="Aucune demande en cours d'installation." />;
   }
 
-  const groups = groupLocationsByStage(locations);
   // Contact partenaire qui a transmis la demande + lieu correspondant :
   // renseigne uniquement pour Groupe Rossi (voir PARTENAIRE_ROSSI_RECORD_ID
   // / getReferredLocations) — colonnes ajoutees seulement quand pertinentes,
   // pas pour les locations du reste de l'app ou ces champs sont toujours vides.
-  const showReferrerColumns = locations.some((l) => l.referrer);
+  const showReferrerColumns = allDisplayed.some((l) => l.referrer);
   const columnCount = showReferrerColumns ? 7 : 5;
 
   return (
     <div>
       <div className="mb-3 flex justify-end">
-        <ExportXlsButton rows={toExportRows(locations, showReferrerColumns)} filename="suivi-demandes.xlsx" />
+        <ExportXlsButton rows={toExportRows(allDisplayed, showReferrerColumns)} filename="suivi-demandes.xlsx" />
       </div>
       <div className="card overflow-x-auto p-0">
         <table className="table min-w-[780px]">
@@ -78,7 +90,7 @@ export function PendingRequestsTable({
                   <td className="font-medium">{location.clientName}</td>
                   <td>
                     {linkable ? (
-                      <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                      <Link href={`${detailBasePath}/${location.id}`} className="text-inherit no-underline hover:underline">
                         {location.contact || "—"}
                       </Link>
                     ) : (

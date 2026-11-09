@@ -4,9 +4,9 @@ export interface SessionUser {
   contactId: string;
   email: string;
   name: string;
-  role: "interne" | "partenaire_location" | "apporteur_affaire";
-  // Id du Partenaire lie — pour role === "partenaire_location" ou
-  // "apporteur_affaire" (voir getAuthorizedContactByEmail).
+  role: "interne" | "partenaire_location" | "apporteur_affaire" | "partenaire_facturation";
+  // Id du Partenaire lie — pour tout role autre que "interne" (voir
+  // getAuthorizedContactByEmail).
   partnerId?: string;
 }
 
@@ -80,7 +80,8 @@ export async function verifySessionToken(token: string | undefined | null): Prom
     if (
       parsed.role !== "interne" &&
       parsed.role !== "partenaire_location" &&
-      parsed.role !== "apporteur_affaire"
+      parsed.role !== "apporteur_affaire" &&
+      parsed.role !== "partenaire_facturation"
     ) {
       return null;
     }

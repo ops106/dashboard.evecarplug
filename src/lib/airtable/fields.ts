@@ -41,12 +41,14 @@ export const CONTACT_FIELDS = {
 // "Interne" : accès complet. "Partenaire location" : accès limité aux
 // demandes dont le Partenaire correspond au leur (voir authorize.ts).
 // "Partenaire" (générique) : formule Persona du Contact quand le Partenaire
-// lié n'est pas dans le pipeline Location — c'est ce bucket qui regroupe les
-// apporteurs d'affaires, distingués via le Type du Partenaire lié.
+// lié n'est pas dans le pipeline Location — ce bucket regroupe à la fois les
+// apporteurs d'affaires et les sociétés à contrat cadre (pipeline
+// "Facturation entreprise"), distingués via le Type du Partenaire lié.
 export const PERSONA_INTERNE = "Interne";
 export const PERSONA_PARTENAIRE_LOCATION = "Partenaire location";
 export const PERSONA_PARTENAIRE = "Partenaire";
 export const PARTENAIRE_TYPE_APPORTEUR_AFFAIRES = "Apporteur d'affaires";
+export const PARTENAIRE_TYPE_SOCIETE_CONTRAT_CADRE = "Société contrat cadre";
 
 // Une seule source de verite pour les noms de champs Airtable : si un champ
 // est renomme dans Airtable, seule cette liste doit etre mise a jour.
@@ -87,7 +89,10 @@ export const DEMANDE_FIELDS = {
   raisonRefusDevis: "Raison refus devis",
   montantDevisEntreprise: "Montant du devis entreprise",
   dateValidationDevis: "Date de validation du devis",
+  valideParDevis: "Validé par (devis)",
   dureeEngagement: "Durée d'engagement",
+  dateValidationExterne: "Date de validation (demande externe)",
+  valideParExterne: "Validé par (demande externe)",
 } as const;
 
 export const PARTENAIRE_FIELDS = {

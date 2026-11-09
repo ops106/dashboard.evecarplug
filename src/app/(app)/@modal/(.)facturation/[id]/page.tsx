@@ -19,16 +19,16 @@ export default async function QuoteDetailModal({
   const { id } = await params;
 
   const session = await getSessionUser();
-  const { isInterne, isPartner, partnerId } = await getViewAsContext(session);
-  if (!isInterne && !isPartner) redirect("/");
+  const { isInterne, isPartner, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  if (!isInterne && !isPartner && !isFacturationEntreprise) redirect("/");
 
   const location = await getQuoteRequestById(id);
   if (!location) notFound();
-  if (isPartner && !isWithinPartnerScope(location.clientId, partnerId)) notFound();
+  if ((isPartner || isFacturationEntreprise) && !isWithinPartnerScope(location.clientId, partnerId)) notFound();
 
   return (
     <SlideOver title="Fiche demande">
-      <QuoteDetailContent location={location} canManage={isInterne && !isPartner} />
+      <QuoteDetailContent location={location} canManage={isInterne && !isPartner && !isFacturationEntreprise} />
     </SlideOver>
   );
 }

@@ -7,7 +7,7 @@ import { useState } from "react";
 import { logoutAction } from "@/app/login/logout-action";
 import { setViewAsPartnerAction } from "@/lib/view-as-actions";
 
-type Role = "interne" | "partenaire_location" | "apporteur_affaire";
+type Role = "interne" | "partenaire_location" | "apporteur_affaire" | "partenaire_facturation";
 
 // roles absent = visible pour tout le monde (ex. Tableau de bord, Suivi des
 // demandes). roles present = liste blanche explicite des personas autorisées.
@@ -25,12 +25,21 @@ const NAV_GROUPS: { label?: string; links: NavLink[] }[] = [
     ],
   },
   {
+    // Societes a contrat cadre (pipeline Facturation entreprise) : pas de
+    // location de bornes, donc pas de groupe "Locations" — seulement le
+    // suivi des demandes installees, voir plus bas.
+    label: "Acquisition",
+    links: [
+      { href: "/bornes-installees", label: "Bornes installées", roles: ["interne", "partenaire_facturation"] },
+    ],
+  },
+  {
     label: "Suivi & gestion",
     links: [
       { href: "/suivi-demandes", label: "Suivi des demandes" },
       { href: "/facturation", label: "Facturation", roles: ["interne"] },
       { href: "/historique", label: "Historique", roles: ["interne"] },
-      { href: "/facturation", label: "Historique", roles: ["partenaire_location"] },
+      { href: "/facturation", label: "Historique", roles: ["partenaire_location", "partenaire_facturation"] },
     ],
   },
   {
@@ -46,16 +55,18 @@ export function Nav({
   role,
   isPartner = false,
   isApporteur = false,
+  isFacturationEntreprise = false,
   viewAsEmail,
   partnerContacts = [],
 }: {
   role?: Role;
-  // Vrai a la fois pour une vraie session partenaire/apporteur et pour un
-  // interne en train de "voir comme" l'un des deux — controle ce qui est
-  // masque dans la sidebar (role seul ne suffit pas : il reste "interne"
-  // pendant la simulation, voir (app)/layout.tsx).
+  // Vrai a la fois pour une vraie session partenaire/apporteur/facturation
+  // entreprise et pour un interne en train de "voir comme" l'un des trois —
+  // controle ce qui est masque dans la sidebar (role seul ne suffit pas : il
+  // reste "interne" pendant la simulation, voir (app)/layout.tsx).
   isPartner?: boolean;
   isApporteur?: boolean;
+  isFacturationEntreprise?: boolean;
   viewAsEmail?: string;
   partnerContacts?: { value: string; label: string }[];
 }) {
@@ -73,14 +84,16 @@ export function Nav({
     setOpen(false);
   }
 
-  // isPartner/isApporteur priment sur role tant qu'un interne "voit comme"
-  // l'un des deux (role reste "interne" pendant la simulation, voir
-  // (app)/layout.tsx).
+  // isPartner/isApporteur/isFacturationEntreprise priment sur role tant qu'un
+  // interne "voit comme" l'un des trois (role reste "interne" pendant la
+  // simulation, voir (app)/layout.tsx).
   const effectiveRole: Role | undefined = isPartner
     ? "partenaire_location"
     : isApporteur
       ? "apporteur_affaire"
-      : role;
+      : isFacturationEntreprise
+        ? "partenaire_facturation"
+        : role;
   const groups = NAV_GROUPS.map((group) => ({
     ...group,
     links: group.links.filter((link) => !link.roles || (effectiveRole && link.roles.includes(effectiveRole))),

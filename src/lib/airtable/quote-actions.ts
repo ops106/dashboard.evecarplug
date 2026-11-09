@@ -13,6 +13,7 @@ import { notifyRequestDecision } from "@/lib/request-decision-webhook";
 function revalidateQuoteViews() {
   revalidatePath("/");
   revalidatePath("/facturation");
+  revalidatePath("/historique");
 }
 
 // Valider un devis d'ajout supplémentaire valide aussi la demande externe
@@ -26,6 +27,7 @@ export async function validateQuoteAction(id: string) {
     "Statut devis": QUOTE_STATUS_VALIDE,
     "EXTERNAL - Validation demande ": EXTERNAL_VALIDATION_VALIDE,
     "Date de validation du devis": new Date().toISOString().slice(0, 10),
+    "Validé par (devis)": session ? `${session.name} (${session.email})` : "Inconnu",
   });
   await logUsage({ action: "Valider devis", feature: "Devis", actor: session, detail: location.clientName });
   await notifyRequestDecision(location, {

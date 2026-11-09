@@ -14,19 +14,19 @@ export default async function QuoteDetailPage({
   const { id } = await params;
 
   const session = await getSessionUser();
-  const { isInterne, isPartner, partnerId } = await getViewAsContext(session);
-  if (!isInterne && !isPartner) redirect("/");
+  const { isInterne, isPartner, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  if (!isInterne && !isPartner && !isFacturationEntreprise) redirect("/");
 
   const location = await getQuoteRequestById(id);
   if (!location) notFound();
-  if (isPartner && !isWithinPartnerScope(location.clientId, partnerId)) notFound();
+  if ((isPartner || isFacturationEntreprise) && !isWithinPartnerScope(location.clientId, partnerId)) notFound();
 
   return (
     <div className="space-y-6">
       <Link href="/facturation" className="text-sm text-muted hover:text-[var(--color-accent)]">
         ← Retour à la facturation
       </Link>
-      <QuoteDetailContent location={location} canManage={isInterne && !isPartner} />
+      <QuoteDetailContent location={location} canManage={isInterne && !isPartner && !isFacturationEntreprise} />
     </div>
   );
 }

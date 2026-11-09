@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { getAllLocations, getApporteurPartners, getReferredLocations } from "@/lib/airtable/queries";
+import { getAllAcquisitionLocations, getAllLocations, getApporteurPartners, getReferredLocations } from "@/lib/airtable/queries";
 import {
+  isAwaitingFarodConnection,
   isCancelled,
   isInstallationInProgress,
   isNewRequest,
@@ -21,7 +22,7 @@ export default async function SuiviDemandesPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
 
   // Persona Apporteur d'affaires (ou interne "voir comme" un apporteur) :
   // tout son entonnoir (y compris installées et annulées, contrairement au
@@ -90,21 +91,33 @@ export default async function SuiviDemandesPage({
 
   const showCancelled = params.tab === "annulees";
 
+  // Partenaire location ou société à contrat cadre : vue scopée à sa propre
+  // société, pas de filtre Société ni d'apporteurs à proposer.
+  const isScopedPersona = isPartner || isFacturationEntreprise;
+
   // Le filtre Société inclut aussi les apporteurs d'affaires (societes hors
   // pipeline Location) — leurs demandes sont recuperees a part si l'un d'eux
   // est selectionne, via getReferredLocations (voir aussi getAllLocations,
   // qui ne les renvoie jamais).
-  const apporteurPartners = isPartner ? [] : await getApporteurPartners();
+  const apporteurPartners = isScopedPersona ? [] : await getApporteurPartners();
   const selectedApporteurId =
-    !isPartner && params.client && apporteurPartners.some((p) => p.id === params.client)
+    !isScopedPersona && params.client && apporteurPartners.some((p) => p.id === params.client)
       ? params.client
       : undefined;
 
   const [allLocations, referredForSelectedApporteur] = await Promise.all([
-    getAllLocations(isPartner ? { partnerId } : undefined),
+    isFacturationEntreprise
+      ? getAllAcquisitionLocations({ partnerId })
+      : getAllLocations(isPartner ? { partnerId } : undefined),
     selectedApporteurId ? getReferredLocations(selectedApporteurId) : Promise.resolve([]),
   ]);
   const notInstalled = allLocations.filter(isNotYetInstalled);
+
+  // Installees mais pas encore remontees sur /locations (date farod
+  // manquante) — persona partenaire location uniquement (pas de notion de
+  // Farod pour une société à contrat cadre, voir /bornes-installees),
+  // affichees en dernier statut du tableau (voir isAwaitingFarodConnection).
+  const awaitingFarod = isPartner ? allLocations.filter(isAwaitingFarodConnection) : [];
 
   const clientOptions = Array.from(
     new Map(notInstalled.filter((l) => l.clientId).map((l) => [l.clientId as string, l.clientName])),
@@ -115,7 +128,7 @@ export default async function SuiviDemandesPage({
 
   const filtered = selectedApporteurId
     ? referredForSelectedApporteur.filter(isNotYetInstalled)
-    : !isPartner && params.client
+    : !isScopedPersona && params.client
       ? notInstalled.filter((l) => l.clientId === params.client)
       : notInstalled;
   const active = filtered.filter((l) => !isCancelled(l));
@@ -141,7 +154,7 @@ export default async function SuiviDemandesPage({
         <p className="mt-1 text-sm text-muted">Demandes pas encore installées, groupées par étape de vente.</p>
       </div>
 
-      {!isPartner && (
+      {!isScopedPersona && (
         <PartnerFilter
           clients={clientOptions}
           value={params.client}
@@ -168,7 +181,7 @@ export default async function SuiviDemandesPage({
           className={`tab ${!showCancelled ? "tab-active" : ""}`}
           aria-current={!showCancelled ? "page" : undefined}
         >
-          Demandes en cours ({active.length})
+          Demandes en cours ({active.length + awaitingFarod.length})
         </Link>
         <Link
           href={tabHref("annulees")}
@@ -179,7 +192,16 @@ export default async function SuiviDemandesPage({
         </Link>
       </div>
 
-      <PendingRequestsTable locations={displayed} linkable={!selectedApporteurId} />
+      <PendingRequestsTable
+        locations={displayed}
+        linkable={!selectedApporteurId}
+        detailBasePath={isFacturationEntreprise ? "/facturation" : "/locations"}
+        extraGroups={
+          !showCancelled && awaitingFarod.length > 0
+            ? [{ status: "En attente de première connexion", locations: awaitingFarod }]
+            : undefined
+        }
+      />
     </div>
   );
 }

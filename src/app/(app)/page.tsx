@@ -1,4 +1,10 @@
-import { getAllLocations, getPartnerCommissionInfo, getPendingQuoteRequests, getReferredLocations } from "@/lib/airtable/queries";
+import {
+  getAllAcquisitionLocations,
+  getAllLocations,
+  getPartnerCommissionInfo,
+  getPendingQuoteRequests,
+  getReferredLocations,
+} from "@/lib/airtable/queries";
 import {
   isCancelled,
   isInstallationInProgress,
@@ -40,7 +46,12 @@ export default async function DashboardPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  // Partenaire location ou société à contrat cadre : même tableau de bord
+  // simplifié (validations + travaux supplémentaires en attente), scopé à sa
+  // propre société — contrairement à l'interne, pas de changements
+  // d'adresse/arrêts de location (notions propres au pipeline Location).
+  const isHistoriquePersona = isPartner || isFacturationEntreprise;
 
   // Persona Apporteur d'affaires (ou interne "voir comme" un apporteur) : ses
   // demandes vivent hors du pipeline Location (voir getReferredLocations) et
@@ -102,8 +113,10 @@ export default async function DashboardPage({
   }
 
   const [allLocations, allQuoteRequests] = await Promise.all([
-    getAllLocations(isPartner ? { partnerId } : undefined),
-    getPendingQuoteRequests(isPartner ? { partnerId } : undefined),
+    isFacturationEntreprise
+      ? getAllAcquisitionLocations({ partnerId })
+      : getAllLocations(isPartner ? { partnerId } : undefined),
+    getPendingQuoteRequests(isHistoriquePersona ? { partnerId } : undefined),
   ]);
 
   const clientOptions = Array.from(
@@ -114,7 +127,7 @@ export default async function DashboardPage({
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
-  const locations = params.client && !isPartner
+  const locations = params.client && !isHistoriquePersona
     ? allLocations.filter((l) => l.clientId === params.client)
     : allLocations;
 
@@ -122,7 +135,7 @@ export default async function DashboardPage({
   const pendingTerminations = locations.filter(isTerminationPending);
   const pendingExternalValidation = locations.filter(needsExternalValidation);
   const pendingQuoteValidation =
-    params.client && !isPartner
+    params.client && !isHistoriquePersona
       ? allQuoteRequests.filter((l) => l.clientId === params.client)
       : allQuoteRequests;
 
@@ -144,10 +157,10 @@ export default async function DashboardPage({
         </p>
       </div>
 
-      {!isPartner && <PartnerFilter clients={clientOptions} value={params.client} resetHref="/" />}
+      {!isHistoriquePersona && <PartnerFilter clients={clientOptions} value={params.client} resetHref="/" />}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {!isPartner && (
+        {!isHistoriquePersona && (
           <>
             <StatCard
               label="Changements d'adresse en attente"
@@ -173,7 +186,7 @@ export default async function DashboardPage({
         />
       </div>
 
-      {!isPartner && (
+      {!isHistoriquePersona && (
         <DashboardActionTabs
           relocations={sortByClient(pendingRelocations)}
           terminations={sortByClient(pendingTerminations)}
@@ -183,14 +196,18 @@ export default async function DashboardPage({
         />
       )}
 
-      {isPartner && (
+      {isHistoriquePersona && (
         <>
           <div>
             <div className="mb-3 flex items-center gap-2">
               <h4>En attente de validation par l&apos;entreprise</h4>
               <span className="tag tag-accent">{pendingExternalValidation.length}</span>
             </div>
-            <ExternalValidationTable locations={pendingExternalValidation} entitiesByClient={entitiesByClient} />
+            <ExternalValidationTable
+              locations={pendingExternalValidation}
+              entitiesByClient={entitiesByClient}
+              detailBasePath={isFacturationEntreprise ? "/facturation" : "/locations"}
+            />
           </div>
 
           <div>

@@ -11,14 +11,14 @@ export default async function ClientDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getSessionUser();
-  const { isInterne, isPartner, partnerId } = await getViewAsContext(session);
-  if (!isInterne && !isPartner) redirect("/");
+  const { isInterne, isPartner, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  if (!isInterne && !isPartner && !isFacturationEntreprise) redirect("/");
 
   const { id } = await params;
   // Un partenaire ne peut consulter que sa propre fiche société (lien depuis
   // les tableaux "Travaux supplémentaires"/Facturation, pipeline distinct des
   // locations) — jamais celle d'un autre.
-  if (isPartner && id !== partnerId) notFound();
+  if ((isPartner || isFacturationEntreprise) && id !== partnerId) notFound();
 
   const client = await getClientById(id);
   if (!client) notFound();
@@ -29,10 +29,10 @@ export default async function ClientDetailPage({
   return (
     <div className="space-y-6">
       <Link
-        href={isPartner ? "/" : "/clients"}
+        href={isPartner || isFacturationEntreprise ? "/" : "/clients"}
         className="text-sm text-muted hover:text-[var(--color-accent)]"
       >
-        {isPartner ? "← Retour au tableau de bord" : "← Retour aux clients"}
+        {isPartner || isFacturationEntreprise ? "← Retour au tableau de bord" : "← Retour aux clients"}
       </Link>
       <ClientDetailContent client={client} activeLocations={activeLocations} />
     </div>

@@ -16,7 +16,8 @@ export default async function AppLayout({
   modal: React.ReactNode;
 }) {
   const session = await getSessionUser();
-  const { isInterne, isPartner, isApporteur, partnerId, viewAsEmail } = await getViewAsContext(session);
+  const { isInterne, isPartner, isApporteur, isFacturationEntreprise, partnerId, viewAsEmail } =
+    await getViewAsContext(session);
 
   const viewAsContacts = isInterne ? await getViewAsContacts() : [];
   const embedHtml = isApporteur && partnerId ? await getPartnerEmbedHtml(partnerId) : null;
@@ -27,6 +28,7 @@ export default async function AppLayout({
         role={session?.role}
         isPartner={isPartner}
         isApporteur={isApporteur}
+        isFacturationEntreprise={isFacturationEntreprise}
         viewAsEmail={viewAsEmail}
         partnerContacts={viewAsContacts.map((c) => ({
           value: c.email,

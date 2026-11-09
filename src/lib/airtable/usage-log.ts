@@ -22,7 +22,9 @@ export async function logUsage(input: LogUsageInput): Promise<void> {
       ? "Interne"
       : input.actor?.role === "apporteur_affaire"
         ? "Apporteur d'affaires"
-        : "Partenaire location";
+        : input.actor?.role === "partenaire_facturation"
+          ? "Société contrat cadre"
+          : "Partenaire location";
 
   const fields: UsageLogFields = {
     "Résumé": input.detail ? `${input.action} — ${input.detail}` : input.action,

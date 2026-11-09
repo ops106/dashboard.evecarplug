@@ -22,11 +22,18 @@ export function LocationsExplorer({
   clientOptions,
   initialClient,
   isPartner,
+  detailBasePath = "/locations",
+  // Déménagement/résiliation : notions propres au pipeline Location, sans
+  // objet pour une société à contrat cadre (persona partenaire_facturation,
+  // page /bornes-installees) — masque les compteurs et les boutons associés.
+  showMovementActions = true,
 }: {
   locations: Location[];
   clientOptions: ClientOption[];
   initialClient?: string;
   isPartner: boolean;
+  detailBasePath?: "/locations" | "/facturation";
+  showMovementActions?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [client, setClient] = useState(initialClient ?? "");
@@ -53,10 +60,14 @@ export function LocationsExplorer({
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+      <div className={`grid grid-cols-1 gap-4 mb-6 ${showMovementActions ? "sm:grid-cols-3" : ""}`}>
         <StatCard label="Bornes actives" value={scoped.length} icon={<BoltIcon />} />
-        <StatCard label="Déménagements en cours" value={relocatingCount} icon={<MapPinIcon />} />
-        <StatCard label="Résiliations en cours" value={terminatingCount} icon={<StopOctagonIcon />} />
+        {showMovementActions && (
+          <>
+            <StatCard label="Déménagements en cours" value={relocatingCount} icon={<MapPinIcon />} />
+            <StatCard label="Résiliations en cours" value={terminatingCount} icon={<StopOctagonIcon />} />
+          </>
+        )}
       </div>
 
       <Card className="mb-6">
@@ -109,7 +120,7 @@ export function LocationsExplorer({
         {filtered.length} résultat{filtered.length > 1 ? "s" : ""}.
       </p>
 
-      <LocationsTable locations={filtered} />
+      <LocationsTable locations={filtered} detailBasePath={detailBasePath} showActions={showMovementActions} />
     </div>
   );
 }

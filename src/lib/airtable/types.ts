@@ -66,11 +66,17 @@ export interface DemandeFields {
   "Date de chantier"?: string;
   "Date de premiere connexion faroad"?: string;
   "EXTERNAL - Validation demande "?: "A valider" | "Validé" | "Refusé";
+  // Remplis par validateExternalRequestAction/validateExternalRequestWithDurationAction/
+  // validateExternalRequestSimpleAction, que ce soit le partenaire ou l'equipe
+  // interne qui valide ("voir comme partenaire") — voir aussi logUsage.
+  "Date de validation (demande externe)"?: string;
+  "Validé par (demande externe)"?: string;
   "Statut devis"?: "A valider" | "Validé" | "Refusé";
   "Lien du devis"?: string;
   "Raison refus devis"?: string;
   "Montant du devis entreprise"?: number;
   "Date de validation du devis"?: string;
+  "Validé par (devis)"?: string;
   "Durée d'engagement"?: "2 ans" | "3 ans";
   // Lookup (tableau, meme pour un lien simple) sur le champ Email de la
   // table Commerciaux via le champ "Commercial" — permet d'alerter le
@@ -183,7 +189,7 @@ export interface UsageLogFields {
     | "Connexion Farod"
     | "Connexion";
   Utilisateur?: string;
-  "Rôle"?: "Interne" | "Partenaire location" | "Apporteur d'affaires";
+  "Rôle"?: "Interne" | "Partenaire location" | "Apporteur d'affaires" | "Société contrat cadre";
   "Détail"?: string;
   Date?: string;
 }

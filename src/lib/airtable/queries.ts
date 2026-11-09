@@ -2,13 +2,16 @@ import "server-only";
 import { getRecord, listAllRecords, updateRecord } from "./client";
 import { isWithinPartnerScope } from "./partner-scope";
 import {
+  EXTERNAL_VALIDATION_VALIDE,
   PARTENAIRE_FAURIE_RECORD_ID,
   PARTENAIRE_FIELDS,
   PARTENAIRE_ROSSI_RECORD_ID,
   PARTENAIRE_TYPE_APPORTEUR_AFFAIRES,
+  PARTENAIRE_TYPE_SOCIETE_CONTRAT_CADRE,
   PERSONA_INTERNE,
   PERSONA_PARTENAIRE,
   PERSONA_PARTENAIRE_LOCATION,
+  PIPELINE_FACTURATION_ENTREPRISE,
   PIPELINE_LOCATION,
   PIPELINE_LOCATION_RECORD_ID,
   QUOTE_STATUS_A_VALIDER,
@@ -176,6 +179,29 @@ export async function getAllLocations(options?: { partnerId?: string }): Promise
   return options?.partnerId ? locations.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : locations;
 }
 
+// Demandes du pipeline "Facturation entreprise" — persona "partenaire_facturation"
+// (societes a contrat cadre, facturees a l'usage plutot que locataires de
+// bornes). Meme forme que getAllDemandeRecords/getAllLocations, pipeline
+// different : alimente Suivi des demandes et Bornes installées pour ce persona.
+async function getAllAcquisitionDemandeRecords() {
+  return listAllRecords<DemandeFields>(TABLE_IDS.demande, {
+    revalidate: 10,
+    filterByFormula: `FIND("${PIPELINE_FACTURATION_ENTREPRISE}", ARRAYJOIN({Pipeline})) > 0`,
+  });
+}
+
+export async function getAllAcquisitionLocations(options?: { partnerId?: string }): Promise<Location[]> {
+  const [demandeRecords, partenaireNames, lieuxNames] = await Promise.all([
+    getAllAcquisitionDemandeRecords(),
+    buildPartenaireNameMap(),
+    buildLieuxNameMap(),
+  ]);
+  const locations = demandeRecords
+    .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
+    .filter((l) => l.clientName !== CLIENT_INCONNU);
+  return options?.partnerId ? locations.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : locations;
+}
+
 // Toutes les demandes rattachees a un Partenaire donne, tous pipelines
 // confondus — utilise par la persona "Apporteur d'affaires", dont les
 // demandes vivent hors du pipeline Location (ex. "ENTRANT") et ne sont donc
@@ -303,6 +329,28 @@ export async function getAllFacturationRequests(options?: { partnerId?: string }
   return options?.partnerId ? requests.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : requests;
 }
 
+// Page Historique : demandes dont la validation externe ("EXTERNAL -
+// Validation demande ") a ete acceptee — tous statuts de pipeline confondus,
+// meme logique que getAllFacturationDemandeRecords.
+async function getAllExternalValidationDemandeRecords() {
+  return listAllRecords<DemandeFields>(TABLE_IDS.demande, {
+    revalidate: 10,
+    filterByFormula: `{EXTERNAL - Validation demande } = "${EXTERNAL_VALIDATION_VALIDE}"`,
+  });
+}
+
+export async function getAllExternalValidationHistory(options?: { partnerId?: string }): Promise<Location[]> {
+  const [demandeRecords, partenaireNames, lieuxNames] = await Promise.all([
+    getAllExternalValidationDemandeRecords(),
+    buildPartenaireNameMap(),
+    buildLieuxNameMap(),
+  ]);
+  const requests = demandeRecords
+    .map((r) => mapDemandeRecord(r, partenaireNames, lieuxNames))
+    .filter((l) => l.clientName !== CLIENT_INCONNU);
+  return options?.partnerId ? requests.filter((l) => isWithinPartnerScope(l.clientId, options.partnerId)) : requests;
+}
+
 // Utilise par validateQuoteAction/refuseQuoteAction : contrairement a
 // getLocationById, ne filtre pas sur PIPELINE_LOCATION_RECORD_ID puisque ces
 // demandes appartiennent a un autre pipeline.
@@ -343,19 +391,21 @@ export async function getClientById(id: string): Promise<Client | null> {
   }
 }
 
+// Fiche société (/clients/[id]) : un client est soit dans le pipeline
+// Location, soit dans Facturation entreprise, jamais les deux — on combine
+// les deux sources pour que la fiche fonctionne quelle que soit la persona.
 export async function getLocationsByClientId(clientId: string): Promise<Location[]> {
-  const locations = await getAllLocations();
-  return locations.filter((l) => l.clientId === clientId);
+  const [locations, acquisitionLocations] = await Promise.all([getAllLocations(), getAllAcquisitionLocations()]);
+  return [...locations, ...acquisitionLocations].filter((l) => l.clientId === clientId);
 }
 
 export interface AuthorizedContact {
   id: string;
   email: string;
   name: string;
-  role: "interne" | "partenaire_location" | "apporteur_affaire";
-  // Id du Partenaire lie, pour role === "partenaire_location" ou
-  // "apporteur_affaire" — sert a scoper toutes les requetes de donnees a
-  // cette seule societe.
+  role: "interne" | "partenaire_location" | "apporteur_affaire" | "partenaire_facturation";
+  // Id du Partenaire lie, pour tout role autre que "interne" — sert a scoper
+  // toutes les requetes de donnees a cette seule societe.
   partnerId?: string;
   // Hash PBKDF2 du mot de passe (jamais le mot de passe en clair) —
   // undefined tant que le contact n'a pas encore defini de mot de passe via
@@ -369,11 +419,22 @@ function escapeFormulaString(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
+// Resout le role precis d'un contact dont Persona = "Partenaire" (bucket
+// generique, Partenaire lie hors pipeline Location) : distingue apporteur
+// d'affaires et societe a contrat cadre (pipeline Facturation entreprise)
+// via le Type du Partenaire lie — voir aussi getViewAsContacts.
+function resolveGenericPartenaireRole(fields: ContactFields): "apporteur_affaire" | "partenaire_facturation" | null {
+  const types = fields["Type de partenariat"] ?? [];
+  if (types.includes(PARTENAIRE_TYPE_APPORTEUR_AFFAIRES)) return "apporteur_affaire";
+  if (types.includes(PARTENAIRE_TYPE_SOCIETE_CONTRAT_CADRE)) return "partenaire_facturation";
+  return null;
+}
+
 // Verifie que l'email correspond a un Contact autorise a se connecter
 // (Persona "Interne", "Partenaire location", ou "Partenaire" generique dont
-// le Partenaire lie est de Type "Apporteur d'affaires"), et renvoie son hash
-// de mot de passe s'il en a defini un (voir loginAction / src/lib/password.ts
-// pour la verification).
+// le Partenaire lie est de Type "Apporteur d'affaires" ou "Société contrat
+// cadre"), et renvoie son hash de mot de passe s'il en a defini un (voir
+// loginAction / src/lib/password.ts pour la verification).
 export async function getAuthorizedContactByEmail(email: string): Promise<AuthorizedContact | null> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return null;
@@ -383,7 +444,10 @@ export async function getAuthorizedContactByEmail(email: string): Promise<Author
     filterByFormula: `AND(LOWER({Email}) = "${escapeFormulaString(normalized)}", OR(
       {Persona} = "${PERSONA_INTERNE}",
       {Persona} = "${PERSONA_PARTENAIRE_LOCATION}",
-      AND({Persona} = "${PERSONA_PARTENAIRE}", FIND("${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}", ARRAYJOIN({Type de partenariat})) > 0)
+      AND({Persona} = "${PERSONA_PARTENAIRE}", OR(
+        FIND("${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}", ARRAYJOIN({Type de partenariat})) > 0,
+        FIND("${PARTENAIRE_TYPE_SOCIETE_CONTRAT_CADRE}", ARRAYJOIN({Type de partenariat})) > 0
+      ))
     ))`,
   });
 
@@ -405,8 +469,9 @@ export async function getAuthorizedContactByEmail(email: string): Promise<Author
 
   if (record.fields.Persona === PERSONA_PARTENAIRE) {
     const partnerId = record.fields.Partenaire?.[0];
-    if (!partnerId) return null;
-    return { id: record.id, email: normalized, name, role: "apporteur_affaire", partnerId, passwordHash };
+    const role = resolveGenericPartenaireRole(record.fields);
+    if (!partnerId || !role) return null;
+    return { id: record.id, email: normalized, name, role, partnerId, passwordHash };
   }
 
   return { id: record.id, email: normalized, name, role: "interne", passwordHash };
@@ -422,23 +487,27 @@ export interface ViewAsContact {
   id: string;
   email: string;
   name: string;
-  role: "partenaire_location" | "apporteur_affaire";
+  role: "partenaire_location" | "apporteur_affaire" | "partenaire_facturation";
   partnerId: string;
   partnerName: string;
 }
 
-// Utilise par la persona "Interne" pour "voir comme" un partenaire location
-// ou un apporteur d'affaires donne (memes pages, meme scope que si ce contact
-// etait connecte) — sans se connecter a sa place. Les contacts sans email ou
-// sans Partenaire lie sont ignores (donnee incoherente, ne peuvent de toute
-// facon pas se connecter eux-memes, voir getAuthorizedContactByEmail).
+// Utilise par la persona "Interne" pour "voir comme" un partenaire location,
+// un apporteur d'affaires ou une societe a contrat cadre donnee (memes
+// pages, meme scope que si ce contact etait connecte) — sans se connecter a
+// sa place. Les contacts sans email ou sans Partenaire lie sont ignores
+// (donnee incoherente, ne peuvent de toute facon pas se connecter eux-memes,
+// voir getAuthorizedContactByEmail).
 export async function getViewAsContacts(): Promise<ViewAsContact[]> {
   const [records, partenaireNames] = await Promise.all([
     listAllRecords<ContactFields>(TABLE_IDS.contact, {
       revalidate: 60,
       filterByFormula: `OR(
         {Persona} = "${PERSONA_PARTENAIRE_LOCATION}",
-        AND({Persona} = "${PERSONA_PARTENAIRE}", FIND("${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}", ARRAYJOIN({Type de partenariat})) > 0)
+        AND({Persona} = "${PERSONA_PARTENAIRE}", OR(
+          FIND("${PARTENAIRE_TYPE_APPORTEUR_AFFAIRES}", ARRAYJOIN({Type de partenariat})) > 0,
+          FIND("${PARTENAIRE_TYPE_SOCIETE_CONTRAT_CADRE}", ARRAYJOIN({Type de partenariat})) > 0
+        ))
       )`,
     }),
     buildPartenaireNameMap(),
@@ -450,7 +519,11 @@ export async function getViewAsContacts(): Promise<ViewAsContact[]> {
     const email = record.fields.Email?.trim().toLowerCase();
     if (!partnerId || !email) continue;
     const name = [record.fields.Prénom, record.fields.Nom].filter(Boolean).join(" ") || email;
-    const role = record.fields.Persona === PERSONA_PARTENAIRE_LOCATION ? "partenaire_location" : "apporteur_affaire";
+    const role =
+      record.fields.Persona === PERSONA_PARTENAIRE_LOCATION
+        ? "partenaire_location"
+        : resolveGenericPartenaireRole(record.fields);
+    if (!role) continue;
     contacts.push({
       id: record.id,
       email,

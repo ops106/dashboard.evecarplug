@@ -19,6 +19,7 @@ function toExportRows(locations: Location[]) {
     "Nouvelle adresse": l.relocation.newAddress || "—",
     "Montant HT": l.quoteAmount ?? "—",
     "Date d'acceptation": toExportDate(l.quoteValidatedDate),
+    "Validé par": l.quoteValidatedBy || "—",
   }));
 }
 
@@ -46,6 +47,7 @@ export function FacturationTable({ locations }: { locations: Location[] }) {
               <th>Téléphone</th>
               <th>Montant HT</th>
               <th>Date d&apos;acceptation</th>
+              <th>Validé par</th>
               <th style={{ textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
@@ -62,6 +64,7 @@ export function FacturationTable({ locations }: { locations: Location[] }) {
                 <td>{location.phone || "—"}</td>
                 <td>{location.quoteAmount != null ? `${location.quoteAmount.toLocaleString("fr-FR")} €` : "—"}</td>
                 <td>{formatDate(location.quoteValidatedDate)}</td>
+                <td>{location.quoteValidatedBy || "—"}</td>
                 <td className="whitespace-nowrap">
                   <div className="flex justify-end">
                     <ViewQuoteButton locationId={location.id} quoteLink={location.quoteLink} />

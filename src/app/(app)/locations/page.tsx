@@ -4,8 +4,9 @@ import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { LocationsExplorer } from "@/components/locations/LocationsExplorer";
 
-// Réservée aux personas Interne et Partenaire location — un Apporteur
-// d'affaires n'a accès qu'au Tableau de bord et au Suivi des demandes.
+// Réservée aux personas Interne et Partenaire location — ni un Apporteur
+// d'affaires ni une société à contrat cadre (Facturation entreprise, voir
+// /bornes-installees) n'ont accès à cette notion de location.
 export default async function LocationsPage({
   searchParams,
 }: {
@@ -13,8 +14,8 @@ export default async function LocationsPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
-  if (isApporteur) redirect("/");
+  const { isPartner, isApporteur, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
+  if (isApporteur || isFacturationEntreprise) redirect("/");
 
   const allLocations = await getAllLocations(isPartner ? { partnerId } : undefined);
   const activeLocations = allLocations.filter((l) => l.isActive && l.firstFarodConnectionDate);

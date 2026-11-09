@@ -1,22 +1,24 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAllFacturationRequests, getAllLocations, getMovementHistory } from "@/lib/airtable/queries";
+import { getAllExternalValidationHistory, getAllFacturationRequests, getAllLocations } from "@/lib/airtable/queries";
 import { ETAPE_INSTALLATION_TERMINEE, QUOTE_STATUS_VALIDE } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { FacturationTable } from "@/components/locations/FacturationTable";
-import { MovementHistoryTable } from "@/components/locations/MovementHistoryTable";
+import { ExternalValidationHistoryTable } from "@/components/locations/ExternalValidationHistoryTable";
 import { PendingFarodConnectionTable } from "@/components/locations/PendingFarodConnectionTable";
 // Note : la page "Historique" (/historique) reprend ce meme affichage
-// (devis valides + mouvements aboutis) pour le persona interne, tous
-// partenaires confondus — voir ce fichier pour le contenu equivalent cote
-// interne, en plus de la Facturation ci-dessous (jamais a la place).
+// (devis valides + demandes validees par l'entreprise) pour le persona
+// interne, tous partenaires confondus — voir ce fichier pour le contenu
+// equivalent cote interne, en plus de la Facturation ci-dessous (jamais a la
+// place).
 import { PartnerFilter } from "@/components/locations/PartnerFilter";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
-// Réservée aux personas Interne et Partenaire location — un Apporteur
-// d'affaires n'a accès qu'au Tableau de bord et au Suivi des demandes.
+// Réservée aux personas Interne, Partenaire location et Société à contrat
+// cadre — un Apporteur d'affaires n'a accès qu'au Tableau de bord et au Suivi
+// des demandes.
 export default async function FacturationPage({
   searchParams,
 }: {
@@ -24,25 +26,34 @@ export default async function FacturationPage({
 }) {
   const params = await searchParams;
   const session = await getSessionUser();
-  const { isPartner, isApporteur, partnerId } = await getViewAsContext(session);
+  const { isPartner, isApporteur, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
   if (isApporteur) redirect("/");
 
-  // "Ajouts supplémentaires" (montants de devis) : réservé au persona
-  // partenaire — l'interne suit plutôt les connexions Farod ci-dessous.
-  const filtered = isPartner
+  // Partenaire location ou société à contrat cadre : même affichage
+  // "Historique" (devis validés + demandes validées), pipeline-agnostic (voir
+  // getAllFacturationRequests/getAllExternalValidationHistory) — seul
+  // l'interne voit la Facturation/suivi Farod ci-dessous.
+  const isHistoriquePersona = isPartner || isFacturationEntreprise;
+
+  // "Ajouts supplémentaires" (montants de devis) : réservé aux personas
+  // partenaires — l'interne suit plutôt les connexions Farod ci-dessous.
+  const filtered = isHistoriquePersona
     ? (await getAllFacturationRequests({ partnerId })).filter((l) => l.quoteStatus === QUOTE_STATUS_VALIDE)
     : [];
 
-  // Déménagements/résiliations aboutis : ne contient que l'aboutissement
-  // final (voir logIfFinalRelocation/logIfFinalTermination), jamais les
-  // étapes intermédiaires ni les refus — même logique que les devis validés
-  // ci-dessus. Réservé au persona partenaire ici ; côté interne, l'équivalent
-  // tous partenaires confondus vit sur la page /historique.
-  const movementHistory = isPartner ? await getMovementHistory({ partnerId }) : [];
+  // Demandes dont la validation externe a ete acceptee (qui/quand, voir
+  // validationFields dans external-validation-actions.ts) — meme logique que
+  // les devis valides ci-dessus. Réservé aux personas partenaires ici ; côté
+  // interne, l'équivalent tous partenaires confondus vit sur /historique.
+  // Filtre sur la date de validation : les demandes validées avant
+  // l'ajout de ce champ n'ont pas de date, on ne les affiche pas.
+  const externalValidations = isHistoriquePersona
+    ? (await getAllExternalValidationHistory({ partnerId })).filter((l) => l.externalValidationDate)
+    : [];
 
   // Chantiers installés sans date de 1ère connexion Farod — réservé au
   // persona interne, jamais visible en mode "voir comme partenaire".
-  const allLocations = isPartner ? [] : await getAllLocations();
+  const allLocations = isHistoriquePersona ? [] : await getAllLocations();
 
   const clientOptions = Array.from(
     new Map(allLocations.filter((l) => l.clientId).map((l) => [l.clientId as string, l.clientName])),
@@ -71,35 +82,35 @@ export default async function FacturationPage({
   return (
     <div>
       <div className="mb-6">
-        <h2 style={{ fontSize: 25 }}>{isPartner ? "Historique" : "Facturation"}</h2>
+        <h2 style={{ fontSize: 25 }}>{isHistoriquePersona ? "Historique" : "Facturation"}</h2>
         <p className="mt-1 text-sm text-muted">
-          {isPartner
+          {isHistoriquePersona
             ? `Suivi des montants de devis. ${filtered.length} résultat${filtered.length > 1 ? "s" : ""}.`
             : "Suivi des connexions Farod en attente."}
         </p>
       </div>
 
-      {isPartner && (
+      {isHistoriquePersona && (
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-2">
-            <h4>Travaux supplémentaires</h4>
+            <h4>Travaux supplémentaires validés</h4>
             <span className="tag tag-accent">{filtered.length}</span>
           </div>
           <FacturationTable locations={filtered} />
         </div>
       )}
 
-      {isPartner && (
+      {isHistoriquePersona && (
         <div>
           <div className="mb-3 flex items-center gap-2">
-            <h4>Déménagements et résiliations aboutis</h4>
-            <span className="tag tag-accent">{movementHistory.length}</span>
+            <h4>Demandes validées</h4>
+            <span className="tag tag-accent">{externalValidations.length}</span>
           </div>
-          <MovementHistoryTable entries={movementHistory} />
+          <ExternalValidationHistoryTable locations={externalValidations} />
         </div>
       )}
 
-      {!isPartner && (
+      {!isHistoriquePersona && (
         <div className="mb-8">
           <div className="mb-3">
             <h4>Ajouter une date de première connexion Farod pour un chantier absent de la liste ci-dessous</h4>
@@ -130,7 +141,7 @@ export default async function FacturationPage({
         </div>
       )}
 
-      {!isPartner && (
+      {!isHistoriquePersona && (
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-2">
             <h4>Installations terminées sans 1ère connexion Farod</h4>

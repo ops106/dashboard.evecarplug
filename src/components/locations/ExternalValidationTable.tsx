@@ -29,10 +29,16 @@ export function ExternalValidationTable({
   locations,
   entitiesByClient,
   linkable = true,
+  // "/locations" (pipeline Location, par defaut) ou "/facturation" (pipeline
+  // Facturation entreprise, pipeline-agnostic — voir getQuoteRequestById) :
+  // getLocationById rejette les demandes hors pipeline Location, donc
+  // /locations/[id] 404 sur les demandes de la persona partenaire_facturation.
+  detailBasePath = "/locations",
 }: {
   locations: Location[];
   entitiesByClient: Record<string, string[]>;
   linkable?: boolean;
+  detailBasePath?: "/locations" | "/facturation";
 }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune demande en attente de validation par l'entreprise." />;
@@ -60,7 +66,7 @@ export function ExternalValidationTable({
                 <td className="font-medium">{location.clientName}</td>
                 <td>
                   {linkable ? (
-                    <Link href={`/locations/${location.id}`} className="text-inherit no-underline hover:underline">
+                    <Link href={`${detailBasePath}/${location.id}`} className="text-inherit no-underline hover:underline">
                       {location.contact || "—"}
                     </Link>
                   ) : (
