@@ -6,9 +6,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PlusIcon } from "@/components/ui/icons";
 import { FilloutEmbedForm } from "@/components/locations/FilloutEmbedForm";
 
-// Bulle flottante (persona Apporteur d'affaires) plutôt qu'un lien dans la
-// sidebar : ouvre le formulaire Fillout (voir getPartnerEmbedHtml) dans une
-// modale glissante, accessible depuis n'importe quelle page de l'app.
+// Bulle flottante (personas partenaires : location, apporteur, société
+// contrat cadre) plutôt qu'un lien dans la sidebar : ouvre le formulaire
+// Fillout (voir getPartnerEmbedHtml) dans une modale glissante, accessible
+// depuis n'importe quelle page de l'app.
 export function NewRequestBubble({ embedHtml }: { embedHtml: string | null }) {
   const [open, setOpen] = useState(false);
 

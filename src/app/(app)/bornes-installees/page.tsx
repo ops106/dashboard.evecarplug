@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAllAcquisitionLocations } from "@/lib/airtable/queries";
+import { getAllAcquisitionLocations, getPartnerFarodMap } from "@/lib/airtable/queries";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
 import { LocationsExplorer } from "@/components/locations/LocationsExplorer";
@@ -18,8 +18,20 @@ export default async function BornesInstalleesPage({
   const { isPartner, isApporteur, isFacturationEntreprise, partnerId } = await getViewAsContext(session);
   if (isPartner || isApporteur) redirect("/");
 
-  const allLocations = await getAllAcquisitionLocations(isFacturationEntreprise ? { partnerId } : undefined);
-  const activeLocations = allLocations.filter((l) => l.isActive && l.firstFarodConnectionDate);
+  const [allLocations, farodMap] = await Promise.all([
+    getAllAcquisitionLocations(isFacturationEntreprise ? { partnerId } : undefined),
+    getPartnerFarodMap(),
+  ]);
+  // Farod = "Non" sur le Partenaire : pas de bornes connectees, donc jamais
+  // de date de 1ere connexion farod — une installation terminee compte comme
+  // active sans l'exiger (voir getPartnerFarodMap).
+  const activeLocations = allLocations.filter(
+    (l) => l.isActive && (farodMap.get(l.clientId ?? "") === "Non" || l.firstFarodConnectionDate),
+  );
+  // Vue scopee a une seule societe (persona partenaire_facturation) : masque
+  // la colonne farod entierement si elle ne s'applique pas a elle. En vue
+  // interne (plusieurs societes), on la garde — pertinente pour les autres.
+  const hideFarodColumn = isFacturationEntreprise && farodMap.get(partnerId ?? "") === "Non";
 
   const clientOptions = Array.from(
     new Map(allLocations.filter((l) => l.clientId).map((l) => [l.clientId as string, l.clientName])),
@@ -41,6 +53,7 @@ export default async function BornesInstalleesPage({
         isPartner={isFacturationEntreprise}
         detailBasePath="/facturation"
         showMovementActions={false}
+        showFarodColumn={!hideFarodColumn}
       />
     </div>
   );

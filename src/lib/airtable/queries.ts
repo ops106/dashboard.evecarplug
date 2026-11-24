@@ -50,6 +50,30 @@ async function buildPartenaireNameMap(): Promise<Map<string, string>> {
   return new Map(records.map((r) => [r.id, mapPartenaireRecord(r).name]));
 }
 
+// "Farod" (Partenaire) : certaines societes du pipeline Facturation
+// entreprise n'ont pas de bornes connectees a Farod — pour elles,
+// /bornes-installees ne doit pas exiger de date de 1ere connexion farod
+// (qui ne sera jamais renseignee) pour compter une installation comme active.
+export async function getPartnerFarodMap(): Promise<Map<string, "Oui" | "Non">> {
+  const records = await listAllRecords<PartenaireFields>(TABLE_IDS.partenaire, { revalidate: 30 });
+  return new Map(
+    records.filter((r) => r.fields.Farod).map((r) => [r.id, r.fields.Farod as "Oui" | "Non"]),
+  );
+}
+
+// "Ajouts facturés entreprise" (Partenaire) : certains partenaires n'ont
+// jamais d'ajout supplémentaire facturé (devis) — pour eux, "Travaux
+// supplémentaires à valider"/"validés" n'ont pas de sens (tableau de bord et
+// Historique/Facturation, persona partenaire).
+export async function getPartnerAjoutsFacturesMap(): Promise<Map<string, "Oui" | "Non">> {
+  const records = await listAllRecords<PartenaireFields>(TABLE_IDS.partenaire, { revalidate: 30 });
+  return new Map(
+    records
+      .filter((r) => r.fields["Ajouts facturés entreprise"])
+      .map((r) => [r.id, r.fields["Ajouts facturés entreprise"] as "Oui" | "Non"]),
+  );
+}
+
 async function buildLieuxNameMap(): Promise<Map<string, string>> {
   const records = await listAllRecords<LieuxFields>(TABLE_IDS.lieux, { revalidate: 30 });
   return new Map(records.map((r) => [r.id, mapLieuxName(r)]));

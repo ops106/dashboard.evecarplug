@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getAllExternalValidationHistory, getAllFacturationRequests, getAllLocations } from "@/lib/airtable/queries";
+import {
+  getAllExternalValidationHistory,
+  getAllFacturationRequests,
+  getAllLocations,
+  getPartnerAjoutsFacturesMap,
+} from "@/lib/airtable/queries";
 import { ETAPE_INSTALLATION_TERMINEE, QUOTE_STATUS_VALIDE } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
 import { getViewAsContext } from "@/lib/view-as";
@@ -35,11 +40,18 @@ export default async function FacturationPage({
   // l'interne voit la Facturation/suivi Farod ci-dessous.
   const isHistoriquePersona = isPartner || isFacturationEntreprise;
 
+  // "Ajouts facturés entreprise" = "Non" sur son Partenaire : cette société
+  // n'a jamais d'ajout supplémentaire facturé — masque "Travaux
+  // supplémentaires validés" sur son Historique.
+  const quotesDisabled =
+    isHistoriquePersona && (await getPartnerAjoutsFacturesMap()).get(partnerId ?? "") === "Non";
+
   // "Ajouts supplémentaires" (montants de devis) : réservé aux personas
   // partenaires — l'interne suit plutôt les connexions Farod ci-dessous.
-  const filtered = isHistoriquePersona
-    ? (await getAllFacturationRequests({ partnerId })).filter((l) => l.quoteStatus === QUOTE_STATUS_VALIDE)
-    : [];
+  const filtered =
+    isHistoriquePersona && !quotesDisabled
+      ? (await getAllFacturationRequests({ partnerId })).filter((l) => l.quoteStatus === QUOTE_STATUS_VALIDE)
+      : [];
 
   // Demandes dont la validation externe a ete acceptee (qui/quand, voir
   // validationFields dans external-validation-actions.ts) — meme logique que
@@ -85,12 +97,14 @@ export default async function FacturationPage({
         <h2 style={{ fontSize: 25 }}>{isHistoriquePersona ? "Historique" : "Facturation"}</h2>
         <p className="mt-1 text-sm text-muted">
           {isHistoriquePersona
-            ? `Suivi des montants de devis. ${filtered.length} résultat${filtered.length > 1 ? "s" : ""}.`
+            ? quotesDisabled
+              ? "Suivi des demandes validées par l'entreprise."
+              : `Suivi des montants de devis. ${filtered.length} résultat${filtered.length > 1 ? "s" : ""}.`
             : "Suivi des connexions Farod en attente."}
         </p>
       </div>
 
-      {isHistoriquePersona && (
+      {isHistoriquePersona && !quotesDisabled && (
         <div className="mb-8">
           <div className="mb-3 flex items-center gap-2">
             <h4>Travaux supplémentaires validés</h4>

@@ -119,6 +119,14 @@ export interface PartenaireFields {
   // Type du partenaire (apporteur d'affaires ou societe contrat cadre) — voir
   // getPartnerEmbedHtml.
   "EMBED partenaire (Real)"?: string;
+  // "Non" : ce partenaire n'a pas de bornes connectees a Farod (societes a
+  // contrat cadre sans monitoring) — voir getPartnerFarodMap, utilise par
+  // /bornes-installees pour ne pas exiger de date de 1ere connexion farod.
+  Farod?: "Oui" | "Non";
+  // "Non" : ce partenaire n'a pas d'ajouts supplementaires factures (devis) —
+  // voir getPartnerAjoutsFacturesMap, masque "Travaux supplementaires a
+  // valider"/"valides" sur son tableau de bord et sa page Historique.
+  "Ajouts facturés entreprise"?: "Oui" | "Non";
 }
 
 // Table "Pipeline" (11 lignes : ENTRANT, B2B AT HOME - LOCATION, etc.) — le

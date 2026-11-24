@@ -514,7 +514,9 @@ a { color: var(--color-accent); text-underline-offset: 3px; }
 /* — bulle flottante "Nouvelle demande" (persona apporteur d'affaires) — */
 .new-request-bubble {
   position: fixed;
-  bottom: 24px;
+  /* Décalé au-dessus du badge "Powered by Netlify" (fixe, bas-droite,
+     hors de notre contrôle) pour éviter le chevauchement. */
+  bottom: 88px;
   right: 24px;
   z-index: 60;
   display: flex;

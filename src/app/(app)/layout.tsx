@@ -19,8 +19,14 @@ export default async function AppLayout({
   const { isInterne, isPartner, isApporteur, isFacturationEntreprise, partnerId, viewAsEmail } =
     await getViewAsContext(session);
 
+  // Bulle "Transmettre une demande" : visible pour tous les personas
+  // partenaires (location, apporteur, société contrat cadre), y compris
+  // l'interne en mode "voir comme partenaire" — jamais sur la vue interne
+  // non scopée (isInterne sans viewAsEmail, isPartner/isApporteur/
+  // isFacturationEntreprise restent alors tous false, voir getViewAsContext).
+  const isPartnerView = isPartner || isApporteur || isFacturationEntreprise;
   const viewAsContacts = isInterne ? await getViewAsContacts() : [];
-  const embedHtml = isApporteur && partnerId ? await getPartnerEmbedHtml(partnerId) : null;
+  const embedHtml = isPartnerView && partnerId ? await getPartnerEmbedHtml(partnerId) : null;
 
   return (
     <div className="flex flex-1">
@@ -38,7 +44,7 @@ export default async function AppLayout({
       <main className="flex-1 px-6 py-8 app-main" style={{ overflowX: "auto" }}>
         <div className="mx-auto w-full max-w-7xl">{children}</div>
       </main>
-      {isApporteur && <NewRequestBubble embedHtml={embedHtml} />}
+      {isPartnerView && <NewRequestBubble embedHtml={embedHtml} />}
       {modal}
     </div>
   );

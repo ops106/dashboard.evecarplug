@@ -34,12 +34,16 @@ export function LocationsTable({
   // Déménagement/résiliation : sans objet pour une société à contrat cadre
   // (persona partenaire_facturation) — masque la colonne Actions entière.
   showActions = true,
+  // "Farod" (Partenaire) = "Non" : pas de bornes connectees, jamais de date
+  // de 1ere connexion farod — colonne masquee (voir /bornes-installees).
+  showFarodColumn = true,
 }: {
   locations: Location[];
   showClient?: boolean;
   linkable?: boolean;
   detailBasePath?: "/locations" | "/facturation";
   showActions?: boolean;
+  showFarodColumn?: boolean;
 }) {
   if (locations.length === 0) {
     return <EmptyState message="Aucune location ne correspond à ces critères." />;
@@ -57,7 +61,7 @@ export function LocationsTable({
               {showClient && <th>Société</th>}
               <th>Client</th>
               <th>Date de chantier</th>
-              <th>Date de première connexion farod</th>
+              {showFarodColumn && <th>Date de première connexion farod</th>}
               <th>Entité partenaire</th>
               {showActions && <th>Actions</th>}
             </tr>
@@ -76,7 +80,7 @@ export function LocationsTable({
                   )}
                 </td>
                 <td>{formatDate(location.constructionDate)}</td>
-                <td>{formatDate(location.firstFarodConnectionDate)}</td>
+                {showFarodColumn && <td>{formatDate(location.firstFarodConnectionDate)}</td>}
                 <td>{location.partnerEntity || "—"}</td>
                 {showActions && (
                   <td className="whitespace-nowrap">

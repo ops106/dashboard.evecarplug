@@ -27,6 +27,9 @@ export function LocationsExplorer({
   // objet pour une société à contrat cadre (persona partenaire_facturation,
   // page /bornes-installees) — masque les compteurs et les boutons associés.
   showMovementActions = true,
+  // "Farod" (Partenaire) = "Non" : pas de bornes connectees, donc jamais de
+  // date de 1ere connexion farod — colonne masquee (voir /bornes-installees).
+  showFarodColumn = true,
 }: {
   locations: Location[];
   clientOptions: ClientOption[];
@@ -34,6 +37,7 @@ export function LocationsExplorer({
   isPartner: boolean;
   detailBasePath?: "/locations" | "/facturation";
   showMovementActions?: boolean;
+  showFarodColumn?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [client, setClient] = useState(initialClient ?? "");
@@ -120,7 +124,12 @@ export function LocationsExplorer({
         {filtered.length} résultat{filtered.length > 1 ? "s" : ""}.
       </p>
 
-      <LocationsTable locations={filtered} detailBasePath={detailBasePath} showActions={showMovementActions} />
+      <LocationsTable
+        locations={filtered}
+        detailBasePath={detailBasePath}
+        showActions={showMovementActions}
+        showFarodColumn={showFarodColumn}
+      />
     </div>
   );
 }
