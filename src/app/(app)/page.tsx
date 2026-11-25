@@ -3,6 +3,7 @@ import {
   getAllLocations,
   getPartnerAjoutsFacturesMap,
   getPartnerCommissionInfo,
+  getPartnerExternalValidationRequiredMap,
   getPendingQuoteRequests,
   getReferredLocations,
 } from "@/lib/airtable/queries";
@@ -113,17 +114,24 @@ export default async function DashboardPage({
     );
   }
 
-  const [allLocations, allQuoteRequests, ajoutsFacturesMap] = await Promise.all([
+  const [allLocations, allQuoteRequests, ajoutsFacturesMap, externalValidationMap] = await Promise.all([
     isFacturationEntreprise
       ? getAllAcquisitionLocations({ partnerId })
       : getAllLocations(isPartner ? { partnerId } : undefined),
     getPendingQuoteRequests(isHistoriquePersona ? { partnerId } : undefined),
     isHistoriquePersona ? getPartnerAjoutsFacturesMap() : Promise.resolve(new Map()),
+    isHistoriquePersona ? getPartnerExternalValidationRequiredMap() : Promise.resolve(new Map()),
   ]);
   // "Ajouts facturés entreprise" = "Non" sur son Partenaire : cette société
   // n'a jamais d'ajout supplémentaire facturé — masque les deux sections
   // "Travaux/Ajouts supplémentaires" sur son tableau de bord.
   const quotesDisabled = isHistoriquePersona && ajoutsFacturesMap.get(partnerId ?? "") === "Non";
+  // "Validation externe requise" = "Non" sur son Partenaire : cette société
+  // saisit ses demandes directement sur la plateforme (pas de formulaire en
+  // ligne) — masque "Validations en attente"/"En attente de validation par
+  // l'entreprise" sur son tableau de bord.
+  const externalValidationDisabled =
+    isHistoriquePersona && externalValidationMap.get(partnerId ?? "") === "Non";
 
   const clientOptions = Array.from(
     new Map(
@@ -180,11 +188,13 @@ export default async function DashboardPage({
             />
           </>
         )}
-        <StatCard
-          label="Validations en attente"
-          value={pendingExternalValidation.length}
-          icon={<CheckBadgeIcon />}
-        />
+        {!externalValidationDisabled && (
+          <StatCard
+            label="Validations en attente"
+            value={pendingExternalValidation.length}
+            icon={<CheckBadgeIcon />}
+          />
+        )}
         {!quotesDisabled && (
           <StatCard
             label="Ajouts supplémentaires à valider"
@@ -206,17 +216,19 @@ export default async function DashboardPage({
 
       {isHistoriquePersona && (
         <>
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <h4>En attente de validation par l&apos;entreprise</h4>
-              <span className="tag tag-accent">{pendingExternalValidation.length}</span>
+          {!externalValidationDisabled && (
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <h4>En attente de validation par l&apos;entreprise</h4>
+                <span className="tag tag-accent">{pendingExternalValidation.length}</span>
+              </div>
+              <ExternalValidationTable
+                locations={pendingExternalValidation}
+                entitiesByClient={entitiesByClient}
+                detailBasePath={isFacturationEntreprise ? "/facturation" : "/locations"}
+              />
             </div>
-            <ExternalValidationTable
-              locations={pendingExternalValidation}
-              entitiesByClient={entitiesByClient}
-              detailBasePath={isFacturationEntreprise ? "/facturation" : "/locations"}
-            />
-          </div>
+          )}
 
           {!quotesDisabled && (
             <div>

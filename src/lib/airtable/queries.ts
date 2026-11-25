@@ -74,6 +74,20 @@ export async function getPartnerAjoutsFacturesMap(): Promise<Map<string, "Oui" |
   );
 }
 
+// "Validation externe requise" (Partenaire) : certains partenaires saisissent
+// leurs demandes directement sur la plateforme (pas de formulaire en ligne),
+// donc rien a verifier cote entreprise — pour eux, "En attente de validation
+// par l'entreprise" (tableau de bord) et "Demandes validées" (Historique/
+// Facturation, persona partenaire) n'ont pas de sens.
+export async function getPartnerExternalValidationRequiredMap(): Promise<Map<string, "Oui" | "Non">> {
+  const records = await listAllRecords<PartenaireFields>(TABLE_IDS.partenaire, { revalidate: 30 });
+  return new Map(
+    records
+      .filter((r) => r.fields["Validation externe requise"])
+      .map((r) => [r.id, r.fields["Validation externe requise"] as "Oui" | "Non"]),
+  );
+}
+
 async function buildLieuxNameMap(): Promise<Map<string, string>> {
   const records = await listAllRecords<LieuxFields>(TABLE_IDS.lieux, { revalidate: 30 });
   return new Map(records.map((r) => [r.id, mapLieuxName(r)]));

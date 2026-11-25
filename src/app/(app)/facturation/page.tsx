@@ -5,6 +5,7 @@ import {
   getAllFacturationRequests,
   getAllLocations,
   getPartnerAjoutsFacturesMap,
+  getPartnerExternalValidationRequiredMap,
 } from "@/lib/airtable/queries";
 import { ETAPE_INSTALLATION_TERMINEE, QUOTE_STATUS_VALIDE } from "@/lib/airtable/fields";
 import { getSessionUser } from "@/lib/session";
@@ -46,6 +47,12 @@ export default async function FacturationPage({
   const quotesDisabled =
     isHistoriquePersona && (await getPartnerAjoutsFacturesMap()).get(partnerId ?? "") === "Non";
 
+  // "Validation externe requise" = "Non" sur son Partenaire : cette société
+  // saisit ses demandes directement sur la plateforme (pas de formulaire en
+  // ligne) — masque "Demandes validées" sur son Historique.
+  const externalValidationDisabled =
+    isHistoriquePersona && (await getPartnerExternalValidationRequiredMap()).get(partnerId ?? "") === "Non";
+
   // "Ajouts supplémentaires" (montants de devis) : réservé aux personas
   // partenaires — l'interne suit plutôt les connexions Farod ci-dessous.
   const filtered =
@@ -59,9 +66,10 @@ export default async function FacturationPage({
   // interne, l'équivalent tous partenaires confondus vit sur /historique.
   // Filtre sur la date de validation : les demandes validées avant
   // l'ajout de ce champ n'ont pas de date, on ne les affiche pas.
-  const externalValidations = isHistoriquePersona
-    ? (await getAllExternalValidationHistory({ partnerId })).filter((l) => l.externalValidationDate)
-    : [];
+  const externalValidations =
+    isHistoriquePersona && !externalValidationDisabled
+      ? (await getAllExternalValidationHistory({ partnerId })).filter((l) => l.externalValidationDate)
+      : [];
 
   // Chantiers installés sans date de 1ère connexion Farod — réservé au
   // persona interne, jamais visible en mode "voir comme partenaire".
@@ -97,9 +105,11 @@ export default async function FacturationPage({
         <h2 style={{ fontSize: 25 }}>{isHistoriquePersona ? "Historique" : "Facturation"}</h2>
         <p className="mt-1 text-sm text-muted">
           {isHistoriquePersona
-            ? quotesDisabled
-              ? "Suivi des demandes validées par l'entreprise."
-              : `Suivi des montants de devis. ${filtered.length} résultat${filtered.length > 1 ? "s" : ""}.`
+            ? quotesDisabled && externalValidationDisabled
+              ? "Aucun suivi disponible pour le moment."
+              : quotesDisabled
+                ? "Suivi des demandes validées par l'entreprise."
+                : `Suivi des montants de devis. ${filtered.length} résultat${filtered.length > 1 ? "s" : ""}.`
             : "Suivi des connexions Farod en attente."}
         </p>
       </div>
@@ -114,7 +124,7 @@ export default async function FacturationPage({
         </div>
       )}
 
-      {isHistoriquePersona && (
+      {isHistoriquePersona && !externalValidationDisabled && (
         <div>
           <div className="mb-3 flex items-center gap-2">
             <h4>Demandes validées</h4>

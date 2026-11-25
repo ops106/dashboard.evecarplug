@@ -127,6 +127,12 @@ export interface PartenaireFields {
   // voir getPartnerAjoutsFacturesMap, masque "Travaux supplementaires a
   // valider"/"valides" sur son tableau de bord et sa page Historique.
   "Ajouts facturés entreprise"?: "Oui" | "Non";
+  // "Non" : ce partenaire saisit ses demandes directement sur la plateforme
+  // (pas de formulaire en ligne, donc rien a verifier cote entreprise) — voir
+  // getPartnerExternalValidationRequiredMap, masque "En attente de validation
+  // par l'entreprise" (tableau de bord) et "Demandes validees" (Historique/
+  // Facturation).
+  "Validation externe requise"?: "Oui" | "Non";
 }
 
 // Table "Pipeline" (11 lignes : ENTRANT, B2B AT HOME - LOCATION, etc.) — le
