@@ -479,7 +479,7 @@ export async function getAuthorizedContactByEmail(email: string): Promise<Author
 
   const records = await listAllRecords<ContactFields>(TABLE_IDS.contact, {
     cache: "no-store",
-    filterByFormula: `AND(LOWER({Email}) = "${escapeFormulaString(normalized)}", OR(
+    filterByFormula: `AND(LOWER(TRIM({Email})) = "${escapeFormulaString(normalized)}", OR(
       {Persona} = "${PERSONA_INTERNE}",
       {Persona} = "${PERSONA_PARTENAIRE_LOCATION}",
       AND({Persona} = "${PERSONA_PARTENAIRE}", OR(
